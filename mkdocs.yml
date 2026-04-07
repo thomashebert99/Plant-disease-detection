@@ -1,0 +1,34 @@
+site_name: Phyto Diagnose
+site_description: Documentation du projet de diagnostic phytosanitaire
+site_author: Ton Nom
+
+theme:
+  name: material
+  language: fr
+  palette:
+    - scheme: default
+      primary: green
+      accent: teal
+  features:
+    - navigation.tabs          # onglets de navigation en haut
+    - navigation.sections      # sections dans la sidebar
+    - toc.integrate            # table des matières intégrée
+    - search.highlight         # surlignage des résultats de recherche
+    - content.code.copy        # bouton copier sur les blocs de code
+
+plugins:
+  - search
+
+nav:
+  - Accueil: index.md
+  - Guide de démarrage: getting_started.md
+  - Architecture: architecture.md
+  - API: api/index.md
+  - MLOps: mlops/index.md
+
+markdown_extensions:
+  - pymdownx.highlight:         # coloration syntaxique des blocs de code
+      anchor_linenums: true
+  - pymdownx.superfences        # blocs de code imbriqués
+  - admonition                  # blocs note/warning/tip
+  - tables

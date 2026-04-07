@@ -1,0 +1,20 @@
+name: ci-cd
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  scaffold-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify project scaffold
+        run: |
+          test -f pyproject.toml
+          test -d src
+          test -d tests

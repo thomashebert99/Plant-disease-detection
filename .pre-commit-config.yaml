@@ -1,0 +1,22 @@
+repos:
+  # Hooks de base
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace         # supprime les espaces en fin de ligne
+      - id: end-of-file-fixer           # s'assure que les fichiers se terminent par \n
+      - id: check-yaml                  # valide la syntaxe des fichiers YAML
+      - id: check-toml                  # valide la syntaxe des fichiers TOML
+      - id: check-json                  # valide la syntaxe des fichiers JSON
+      - id: check-added-large-files     # bloque les fichiers > 500KB (évite d'ajouter des modèles)
+        args: ['--maxkb=500']
+      - id: check-merge-conflict        # détecte les marqueurs de conflit non résolus
+      - id: debug-statements            # détecte les print() et breakpoint() oubliés
+
+  # Ruff — linting et formatage
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.5
+    hooks:
+      - id: ruff                        # linting avec correction auto
+        args: [--fix]
+      - id: ruff-format                 # formatage du code
