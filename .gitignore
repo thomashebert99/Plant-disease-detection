@@ -1,5 +1,6 @@
 # Environnement
 .venv/
+.venv-plant-disease-detection/
 .env
 .env.*
 !.env.example
@@ -26,6 +27,7 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
@@ -37,6 +39,7 @@ htmlcov/
 
 # Editor
 .vscode/
+.codex
 
 # Guide
 PROJECT_GUIDE.md

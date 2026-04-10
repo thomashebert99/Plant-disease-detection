@@ -1,26 +1,37 @@
-.PHONY: install install-gpu install-cpu test lint format docs
+VENV ?= .venv-plant-disease-detection
+PYTHON ?= python3.11
+VENV_PYTHON := $(VENV)/bin/python
+PIP := $(VENV)/bin/pip
 
-install:          ## Installation standard CPU (cloud-compatible)
-	poetry install --with dev,docs
+.PHONY: venv install install-gpu test docs run-api run-app verify-gpu push-models clean-venv
 
-install-gpu:      ## Installation GPU locale (WSL2 + RTX 4090)
-	poetry install --with dev,docs
-	pip install "tensorflow[and-cuda]==2.19.0"
-	pip install torch==2.3.0 torchvision==0.18.0 \
-	  --index-url https://download.pytorch.org/whl/cu121
-	@echo "✅ GPU install done. Verify with: python -c 'import torch; print(torch.cuda.get_device_name(0))'"
+venv:             ## Créer le virtualenv local si besoin
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(PIP) install --upgrade pip setuptools wheel
+
+install: venv     ## Installation locale CPU simple
+	$(PIP) install --default-timeout=120 --retries 10 -r requirements-cpu.txt -r requirements-dev.txt
+
+install-gpu: venv ## Installation locale GPU TensorFlow (WSL2 + RTX 4090)
+	$(PIP) install --default-timeout=120 --retries 10 -r requirements-gpu.txt -r requirements-dev.txt
 
 test:             ## Lancer les tests
-	poetry run pytest
-
-lint:             ## Vérifier le code
-	poetry run ruff check src/ tests/
-
-format:           ## Formater le code
-	poetry run ruff format src/ tests/
+	$(VENV_PYTHON) -m pytest
 
 docs:             ## Lancer la doc en local
-	poetry run mkdocs serve
+	$(VENV)/bin/mkdocs serve
+
+run-api:          ## Lancer l'API FastAPI
+	$(VENV)/bin/uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+
+run-app:          ## Lancer l'interface Streamlit
+	$(VENV)/bin/streamlit run app/streamlit_app.py
+
+verify-gpu:       ## Vérifier la détection GPU TensorFlow
+	$(VENV_PYTHON) -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 
 push-models:      ## Uploader les modèles entraînés sur HF Hub
-	poetry run python scripts/push_models_to_hub.py
+	$(VENV_PYTHON) scripts/push_models_to_hub.py
+
+clean-venv:       ## Supprimer le virtualenv local
+	rm -rf $(VENV)

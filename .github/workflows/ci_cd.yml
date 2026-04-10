@@ -15,6 +15,7 @@ jobs:
 
       - name: Verify project scaffold
         run: |
-          test -f pyproject.toml
+          test -f requirements-cpu.txt
+          test -f requirements-dev.txt
           test -d src
           test -d tests
