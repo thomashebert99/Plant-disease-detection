@@ -1,4 +1,4 @@
-"""Utilities for materializing and validating the provided PlantVillage split."""
+"""Utilities for materializing PlantVillage train/val/test splits."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def build_train_val_splits(
     clean: bool = False,
     random_state: int = DEFAULT_RANDOM_STATE,
 ) -> dict[str, Any]:
-    """Materialize the Kaggle-provided train/valid split into `data/processed/`."""
+    """Materialize a stratified 70/15/15 split in `data/processed/`."""
 
     source_dir = source_dir.resolve()
     target_dir = target_dir.resolve()
@@ -43,7 +43,7 @@ def build_train_val_splits(
         )
 
     logger.info(
-        "Le split Kaggle est conservé tel quel; random_state={} est journalisé pour reproductibilité uniquement.",
+        "PlantVillage est decoupe en train/val/test 70/15/15 avec random_state={}.",
         random_state,
     )
     return build_processed_splits(
@@ -59,7 +59,7 @@ def main() -> None:
     """CLI entrypoint for the split materialization step."""
 
     parser = argparse.ArgumentParser(
-        description="Matérialise le split train/valid Kaggle vers data/processed."
+        description="Matérialise un split PlantVillage 70/15/15 vers data/processed."
     )
     parser.add_argument(
         "--source-dir",
@@ -88,7 +88,7 @@ def main() -> None:
         "--random-state",
         type=int,
         default=DEFAULT_RANDOM_STATE,
-        help="Journalisé pour reproductibilité, sans re-splitting aléatoire.",
+        help="Utilisé pour le split déterministe train/val/test.",
     )
     args = parser.parse_args()
 

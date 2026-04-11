@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import random
 import shutil
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -15,7 +16,9 @@ from loguru import logger
 from src.data.align_labels import build_test_ood_dataset
 
 IMAGE_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
-RAW_SPLIT_TO_TARGET = {"train": "train", "valid": "val"}
+RAW_SPLITS = ("train", "valid")
+TARGET_SPLITS = ("train", "val", "test")
+SPLIT_RATIOS = {"train": 0.70, "val": 0.15, "test": 0.15}
 RAW_TO_PROJECT_LABELS = {
     "Apple___Apple_scab": ("apple", "Apple_Scab"),
     "Apple___Black_rot": ("apple", "Black_Rot"),
@@ -108,7 +111,7 @@ def build_processed_splits(
     clean: bool = False,
     random_state: int = DEFAULT_RANDOM_STATE,
 ) -> dict[str, Any]:
-    """Materialize the provided Kaggle train/valid split into task-specific folders."""
+    """Materialize a deterministic stratified 70/15/15 split from PlantVillage."""
 
     copy_mode = _normalize_copy_mode(copy_mode)
     source_dir = source_dir.resolve()
@@ -127,25 +130,24 @@ def build_processed_splits(
         random_state=random_state,
     )
 
-    for raw_split, target_split in RAW_SPLIT_TO_TARGET.items():
-        split_dir = source_dir / raw_split
-        for image in _iter_plantvillage_images(split_dir, raw_split):
-            species_destination = (
-                target_dir
-                / "species"
-                / target_split
-                / image.species
-                / _build_prefixed_filename(image.source_label, image.source_path.name)
+    source_images = [
+        image
+        for raw_split in RAW_SPLITS
+        for image in _iter_plantvillage_images(source_dir / raw_split, raw_split)
+    ]
+    split_images = _split_images_by_source_label(
+        source_images,
+        random_state=random_state,
+    )
+
+    for target_split, images in split_images.items():
+        for image in images:
+            _materialize_processed_image(
+                image=image,
+                target_dir=target_dir,
+                target_split=target_split,
+                copy_mode=copy_mode,
             )
-            disease_destination = (
-                target_dir
-                / image.species
-                / target_split
-                / image.disease
-                / image.source_path.name
-            )
-            _materialize_file(image.source_path, species_destination, copy_mode)
-            _materialize_file(image.source_path, disease_destination, copy_mode)
 
             report["processed_images"] += 1
             report["species"][target_split][image.species] += 1
@@ -181,6 +183,77 @@ def _is_image_file(path: Path) -> bool:
     return path.suffix.lower() in IMAGE_EXTENSIONS
 
 
+def _split_images_by_source_label(
+    images: list[PlantVillageImage],
+    *,
+    random_state: int,
+) -> dict[str, list[PlantVillageImage]]:
+    grouped_images: dict[str, list[PlantVillageImage]] = defaultdict(list)
+    for image in images:
+        grouped_images[image.source_label].append(image)
+
+    split_images: dict[str, list[PlantVillageImage]] = {"train": [], "val": [], "test": []}
+    for source_label, label_images in sorted(grouped_images.items()):
+        shuffled_images = sorted(label_images, key=lambda image: image.source_path.name)
+        random.Random(f"{random_state}:{source_label}").shuffle(shuffled_images)
+
+        train_count, val_count, test_count = _split_counts(len(shuffled_images))
+
+        split_images["train"].extend(shuffled_images[:train_count])
+        split_images["val"].extend(shuffled_images[train_count : train_count + val_count])
+        split_images["test"].extend(shuffled_images[train_count + val_count :])
+
+    return split_images
+
+
+def _split_counts(image_count: int) -> tuple[int, int, int]:
+    if image_count < 1:
+        return 0, 0, 0
+    if image_count == 1:
+        return 1, 0, 0
+    if image_count == 2:
+        return 1, 1, 0
+
+    train_count = max(1, round(image_count * SPLIT_RATIOS["train"]))
+    val_count = max(1, round(image_count * SPLIT_RATIOS["val"]))
+    test_count = image_count - train_count - val_count
+
+    if test_count < 1:
+        train_count -= 1 - test_count
+        test_count = 1
+
+    if train_count < 1:
+        val_count -= 1 - train_count
+        train_count = 1
+
+    return train_count, val_count, test_count
+
+
+def _materialize_processed_image(
+    *,
+    image: PlantVillageImage,
+    target_dir: Path,
+    target_split: str,
+    copy_mode: str,
+) -> None:
+    species_destination = (
+        target_dir
+        / "species"
+        / target_split
+        / image.species
+        / _build_prefixed_filename(image.source_label, image.source_path.name)
+    )
+    disease_destination = (
+        target_dir
+        / image.species
+        / target_split
+        / image.disease
+        / image.source_path.name
+    )
+    _materialize_file(image.source_path, species_destination, copy_mode)
+    _materialize_file(image.source_path, disease_destination, copy_mode)
+
+
 def _materialize_file(source: Path, destination: Path, copy_mode: str) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists():
@@ -203,7 +276,7 @@ def _build_prefixed_filename(prefix: str, filename: str) -> str:
 
 def _validate_plantvillage_layout(source_dir: Path) -> None:
     missing_splits = [
-        split_name for split_name in RAW_SPLIT_TO_TARGET if not (source_dir / split_name).is_dir()
+        split_name for split_name in RAW_SPLITS if not (source_dir / split_name).is_dir()
     ]
     if missing_splits:
         missing = ", ".join(missing_splits)
@@ -213,14 +286,17 @@ def _validate_plantvillage_layout(source_dir: Path) -> None:
 
 
 def _ensure_processed_roots(target_dir: Path) -> None:
-    for split in RAW_SPLIT_TO_TARGET.values():
+    for split in TARGET_SPLITS:
         for species in RETAINED_SPECIES:
             (target_dir / "species" / split / species).mkdir(parents=True, exist_ok=True)
             (target_dir / species / split).mkdir(parents=True, exist_ok=True)
 
 
 def _clear_processed_directories(target_dir: Path) -> None:
-    managed_directories = [target_dir / "species", *(target_dir / species for species in RETAINED_SPECIES)]
+    managed_directories = [
+        target_dir / "species",
+        *(target_dir / species for species in RETAINED_SPECIES),
+    ]
     for directory in managed_directories:
         if directory.exists():
             shutil.rmtree(directory)
@@ -234,7 +310,7 @@ def _clear_managed_directories(target_dir: Path, test_ood_dir: Path) -> None:
 
 def _discover_ignored_labels(source_dir: Path) -> set[str]:
     ignored_labels: set[str] = set()
-    for raw_split in RAW_SPLIT_TO_TARGET:
+    for raw_split in RAW_SPLITS:
         split_dir = source_dir / raw_split
         for class_dir in split_dir.iterdir():
             if class_dir.is_dir() and class_dir.name not in RAW_TO_PROJECT_LABELS:
@@ -260,16 +336,17 @@ def _build_empty_processed_report(
         "source": str(source_dir),
         "target": str(target_dir),
         "copy_mode": copy_mode,
-        "split_strategy": "dataset_provided_split",
-        "resplit_performed": False,
+        "split_strategy": "stratified_70_15_15_holdout",
+        "resplit_performed": True,
         "random_state": random_state,
+        "split_ratios": SPLIT_RATIOS,
         "processed_images": 0,
         "ignored_labels": [],
         "species": {
-            split: defaultdict(int) for split in RAW_SPLIT_TO_TARGET.values()
+            split: defaultdict(int) for split in TARGET_SPLITS
         },
         "diseases": {
-            split: defaultdict(Counter) for split in RAW_SPLIT_TO_TARGET.values()
+            split: defaultdict(Counter) for split in TARGET_SPLITS
         },
     }
 

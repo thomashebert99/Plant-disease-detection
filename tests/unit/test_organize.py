@@ -21,10 +21,11 @@ def test_organize_processed_dataset_restructures_plantvillage_and_builds_ood(
         raw_dir / "train" / "Tomato___Early_blight" / "tomato_train_a.JPG",
         "tomato-train",
     )
-    _write_image(
-        raw_dir / "valid" / "Tomato___healthy" / "tomato_val_a.JPG",
-        "tomato-val",
-    )
+    for index in range(10):
+        _write_image(
+            raw_dir / "valid" / "Tomato___healthy" / f"tomato_healthy_{index}.JPG",
+            f"tomato-healthy-{index}",
+        )
     _write_image(
         raw_dir / "train" / "Apple___Black_rot" / "apple_train_a.JPG",
         "apple-train",
@@ -46,19 +47,30 @@ def test_organize_processed_dataset_restructures_plantvillage_and_builds_ood(
         copy_mode="copy",
     )
 
-    assert report["processed_images"] == 3
+    assert report["processed_images"] == 12
     assert report["ignored_labels"] == ["Blueberry___healthy"]
-    assert report["species"]["train"] == {"apple": 1, "tomato": 1}
-    assert report["species"]["val"] == {"tomato": 1}
-    assert report["diseases"]["train"]["tomato"] == {"Early_Blight": 1}
-    assert report["diseases"]["val"]["tomato"] == {"Healthy": 1}
+    assert report["species"]["train"] == {"apple": 1, "tomato": 8}
+    assert report["species"]["val"] == {"tomato": 2}
+    assert report["species"]["test"] == {"tomato": 1}
+    assert report["diseases"]["train"]["tomato"] == {
+        "Early_Blight": 1,
+        "Healthy": 7,
+    }
+    assert report["diseases"]["val"]["tomato"] == {"Healthy": 2}
+    assert report["diseases"]["test"]["tomato"] == {"Healthy": 1}
     assert report["test_ood"]["processed_images"] == 1
     assert report["test_ood"]["species"]["tomato"] == {"Early_Blight": 1}
 
-    species_file = next((processed_dir / "species" / "train" / "tomato").iterdir())
-    assert species_file.name.startswith("Tomato___Early_blight__")
+    assert (
+        processed_dir
+        / "species"
+        / "train"
+        / "tomato"
+        / "Tomato___Early_blight__tomato_train_a.JPG"
+    ).exists()
     assert (processed_dir / "tomato" / "train" / "Early_Blight" / "tomato_train_a.JPG").exists()
     assert not (processed_dir / "species" / "train" / "blueberry").exists()
+    assert any((processed_dir / "tomato" / "test" / "Healthy").iterdir())
     assert (test_ood_dir / "tomato" / "Early_Blight").exists()
 
 

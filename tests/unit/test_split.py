@@ -19,13 +19,17 @@ def test_validate_split_directories_checks_train_and_val_presence(tmp_path: Path
     assert validate_split_directories(train_dir, tmp_path / "missing") is False
 
 
-def test_build_train_val_splits_preserves_provided_kaggle_split(tmp_path: Path) -> None:
-    """The split step should materialize the provided directories without resplitting."""
+def test_build_train_val_splits_creates_validation_and_test_holdout(tmp_path: Path) -> None:
+    """The split step should build a stratified 70/15/15 holdout."""
 
     raw_dir = tmp_path / "raw" / "plantvillage"
     processed_dir = tmp_path / "processed"
-    _write_image(raw_dir / "train" / "Tomato___Early_blight" / "train_a.JPG", "train")
-    _write_image(raw_dir / "valid" / "Tomato___healthy" / "val_a.JPG", "val")
+    (raw_dir / "train").mkdir(parents=True)
+    for index in range(10):
+        _write_image(
+            raw_dir / "valid" / "Tomato___healthy" / f"tomato_{index}.JPG",
+            f"tomato-{index}",
+        )
 
     report = build_train_val_splits(
         source_dir=raw_dir,
@@ -34,14 +38,18 @@ def test_build_train_val_splits_preserves_provided_kaggle_split(tmp_path: Path) 
         random_state=42,
     )
 
-    assert report["split_strategy"] == "dataset_provided_split"
-    assert report["resplit_performed"] is False
+    assert report["split_strategy"] == "stratified_70_15_15_holdout"
+    assert report["resplit_performed"] is True
     assert report["random_state"] == 42
-    assert report["processed_images"] == 2
-    assert report["species"]["train"] == {"tomato": 1}
-    assert report["species"]["val"] == {"tomato": 1}
+    assert report["split_ratios"] == {"train": 0.70, "val": 0.15, "test": 0.15}
+    assert report["processed_images"] == 10
+    assert report["species"]["train"] == {"tomato": 7}
+    assert report["species"]["val"] == {"tomato": 2}
+    assert report["species"]["test"] == {"tomato": 1}
     assert (processed_dir / "species" / "train" / "tomato").exists()
-    assert (processed_dir / "tomato" / "val" / "Healthy" / "val_a.JPG").exists()
+    assert len(list((processed_dir / "tomato" / "train" / "Healthy").iterdir())) == 7
+    assert len(list((processed_dir / "tomato" / "val" / "Healthy").iterdir())) == 2
+    assert len(list((processed_dir / "tomato" / "test" / "Healthy").iterdir())) == 1
 
 
 def _write_image(path: Path, content: str) -> None:
