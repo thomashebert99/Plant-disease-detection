@@ -33,12 +33,20 @@ class SpeciesSource(str, Enum):
     manual = "manual"
 
 
+class PredictionCandidate(BaseModel):
+    """One candidate class returned by a model ensemble."""
+
+    label: str = Field(..., examples=["tomato"])
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+
 class SpeciesResult(BaseModel):
     """Species prediction payload."""
 
     species: str = Field(..., examples=["tomato"])
     confidence: float = Field(..., ge=0.0, le=1.0)
     source: SpeciesSource = Field(..., examples=["auto"])
+    top_predictions: list[PredictionCandidate] = Field(default_factory=list)
 
 
 class DiseaseResult(BaseModel):
@@ -46,6 +54,7 @@ class DiseaseResult(BaseModel):
 
     disease: str = Field(..., examples=["Late_Blight"])
     confidence: float = Field(..., ge=0.0, le=1.0)
+    top_predictions: list[PredictionCandidate] = Field(default_factory=list)
 
 
 class PredictionResponse(BaseModel):

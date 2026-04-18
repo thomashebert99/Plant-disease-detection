@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import re
+import time
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -60,6 +61,31 @@ def parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="Build and validate the Hub config without uploading files.",
+    )
+    parser.add_argument(
+        "--start-at",
+        default=None,
+        help=(
+            "Resume model uploads from this remote path, for example "
+            "models/pepper/03_ConvNeXtTiny_ConvNeXtTiny_ft_l50_lr1e_05.keras."
+        ),
+    )
+    parser.add_argument(
+        "--only-task",
+        default=None,
+        help="Upload only one task, for example pepper or species.",
+    )
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=3,
+        help="Number of attempts per model file when an upload fails.",
+    )
+    parser.add_argument(
+        "--retry-wait-seconds",
+        type=int,
+        default=20,
+        help="Base delay between upload retries. The delay grows after each failure.",
     )
     return parser.parse_args()
 
@@ -131,6 +157,10 @@ def upload_model_artifacts(
     repo_id: str,
     token: str | None,
     dry_run: bool,
+    start_at: str | None,
+    only_task: str | None,
+    max_retries: int,
+    retry_wait_seconds: int,
 ) -> None:
     """Upload all selected Keras checkpoints to their configured Hub paths."""
 
@@ -138,10 +168,26 @@ def upload_model_artifacts(
     if not dry_run:
         api.create_repo(repo_id=repo_id, repo_type="model", exist_ok=True, token=token)
 
-    for task_payload in config["tasks"].values():
+    has_reached_start = start_at is None
+    uploaded_count = 0
+    skipped_count = 0
+
+    for task_name, task_payload in config["tasks"].items():
+        if only_task and task_name != only_task:
+            skipped_count += len(task_payload["models"])
+            continue
+
         for model_entry in task_payload["models"]:
             checkpoint_path = resolve_checkpoint_path(model_entry["checkpoint_path"])
             remote_path = model_entry["hub_filename"]
+
+            if not has_reached_start:
+                if remote_path == start_at:
+                    has_reached_start = True
+                else:
+                    skipped_count += 1
+                    logger.info("Ignoré avant --start-at: {}", remote_path)
+                    continue
 
             if not checkpoint_path.exists():
                 raise SystemExit(f"Checkpoint introuvable: {checkpoint_path}")
@@ -150,6 +196,38 @@ def upload_model_artifacts(
                 logger.info("Dry run: {} -> {}", checkpoint_path, remote_path)
                 continue
 
+            upload_file_with_retries(
+                api=api,
+                checkpoint_path=checkpoint_path,
+                remote_path=remote_path,
+                repo_id=repo_id,
+                token=token,
+                max_retries=max_retries,
+                retry_wait_seconds=retry_wait_seconds,
+            )
+            uploaded_count += 1
+
+    if start_at and not has_reached_start:
+        raise SystemExit(f"--start-at introuvable dans la config: {start_at}")
+
+    logger.info("Upload modèles terminé: {} uploadé(s), {} ignoré(s).", uploaded_count, skipped_count)
+
+
+def upload_file_with_retries(
+    *,
+    api: HfApi,
+    checkpoint_path: Path,
+    remote_path: str,
+    repo_id: str,
+    token: str | None,
+    max_retries: int,
+    retry_wait_seconds: int,
+) -> None:
+    """Upload one file to the Hub, retrying complete-file failures."""
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info("Upload tentative {}/{}: {} -> {}", attempt, max_retries, checkpoint_path, remote_path)
             api.upload_file(
                 path_or_fileobj=str(checkpoint_path),
                 path_in_repo=remote_path,
@@ -158,6 +236,20 @@ def upload_model_artifacts(
                 token=token,
             )
             logger.info("Uploadé: {} -> {}/{}", checkpoint_path, repo_id, remote_path)
+            return
+        except Exception as exc:
+            if attempt == max_retries:
+                raise RuntimeError(
+                    f"Upload impossible après {max_retries} tentative(s): {remote_path}"
+                ) from exc
+            wait_seconds = retry_wait_seconds * attempt
+            logger.warning(
+                "Échec upload {}: {}. Nouvelle tentative dans {}s.",
+                remote_path,
+                exc,
+                wait_seconds,
+            )
+            time.sleep(wait_seconds)
 
 
 def build_remote_model_path(task_name: str, model_entry: dict[str, Any]) -> str:
@@ -201,6 +293,10 @@ def main() -> None:
         repo_id=args.repo_id,
         token=args.token,
         dry_run=args.dry_run,
+        start_at=args.start_at,
+        only_task=args.only_task,
+        max_retries=args.max_retries,
+        retry_wait_seconds=args.retry_wait_seconds,
     )
     upload_hub_config(
         config=hub_config,

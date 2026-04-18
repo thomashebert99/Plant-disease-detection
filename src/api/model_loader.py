@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -44,6 +44,7 @@ class PredictionResult:
     confidence: float
     probabilities: list[float]
     model_count: int
+    top_predictions: list[dict[str, float | str]] = field(default_factory=list)
 
 
 def model_source() -> str:
@@ -166,6 +167,7 @@ def predict_task(task: str, image_batch: np.ndarray) -> PredictionResult:
     average_proba = np.mean(probabilities, axis=0)
     class_index = int(np.argmax(average_proba))
     confidence = float(average_proba[class_index])
+    top_indices = np.argsort(average_proba)[::-1][:3]
 
     return PredictionResult(
         task=task,
@@ -174,6 +176,13 @@ def predict_task(task: str, image_batch: np.ndarray) -> PredictionResult:
         confidence=confidence,
         probabilities=[float(value) for value in average_proba],
         model_count=len(model_entries),
+        top_predictions=[
+            {
+                "label": str(class_names[index]),
+                "confidence": float(average_proba[index]),
+            }
+            for index in top_indices
+        ],
     )
 
 

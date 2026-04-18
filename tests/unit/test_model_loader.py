@@ -125,6 +125,10 @@ def test_predict_task_uses_soft_vote(
     assert result.confidence == pytest.approx(0.55)
     assert result.probabilities == pytest.approx([0.45, 0.55])
     assert result.model_count == 2
+    assert [candidate["label"] for candidate in result.top_predictions] == ["tomato", "apple"]
+    assert [candidate["confidence"] for candidate in result.top_predictions] == pytest.approx(
+        [0.55, 0.45]
+    )
 
 
 def test_hub_mode_requires_hub_filename(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

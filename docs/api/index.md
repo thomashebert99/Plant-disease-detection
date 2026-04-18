@@ -26,11 +26,18 @@ Variables utiles :
 |---|---|---|
 | `MODEL_SOURCE` | `local` ou `hub` | Source des modèles |
 | `ENSEMBLE_CONFIG_PATH` | `models/ensemble_config.json` | Chemin local optionnel vers la config |
-| `HF_REPO_ID` | `<user>/plant-disease-detection-models` | Repo Hugging Face contenant les modèles |
+| `HF_REPO_ID` | `DredFury/plant-disease-detection-models` | Repo Hugging Face contenant les modèles |
 | `HF_TOKEN` | `hf_...` | Token nécessaire si le repo HF est privé |
-| `CONFIDENCE_THRESHOLD` | `0.85` | Seuil de confiance pour la détection automatique d'espèce |
+| `CONFIDENCE_THRESHOLD` | `0.65` | Seuil de confiance pour la détection automatique d'espèce |
+| `MONITORING_LOG_PATH` | `logs/predictions.jsonl` | Fichier JSONL de monitoring des prédictions |
 
 En local, la valeur par défaut est `MODEL_SOURCE=local`. En production Hugging Face Spaces, utiliser `MODEL_SOURCE=hub`.
+
+URL publique de l'API :
+
+```text
+https://dredfury-plant-disease-detection-api.hf.space
+```
 
 ## Endpoints
 
@@ -50,6 +57,12 @@ Exemple :
 
 ```bash
 curl http://127.0.0.1:8000/health
+```
+
+Exemple production :
+
+```bash
+curl https://dredfury-plant-disease-detection-api.hf.space/health
 ```
 
 ### `GET /models/info`
@@ -99,6 +112,12 @@ Exemple :
 curl http://127.0.0.1:8000/models/info
 ```
 
+Exemple production :
+
+```bash
+curl https://dredfury-plant-disease-detection-api.hf.space/models/info
+```
+
 ### `POST /predict`
 
 Endpoint principal. Il reçoit une image et, optionnellement, une espèce déclarée.
@@ -143,11 +162,17 @@ Réponse `ok` :
   "species": {
     "species": "tomato",
     "confidence": 1.0,
-    "source": "manual"
+    "source": "manual",
+    "top_predictions": []
   },
   "disease": {
     "disease": "Late_Blight",
-    "confidence": 0.91
+    "confidence": 0.91,
+    "top_predictions": [
+      {"label": "Late_Blight", "confidence": 0.91},
+      {"label": "Early_Blight", "confidence": 0.05},
+      {"label": "Healthy", "confidence": 0.02}
+    ]
   },
   "gradcam_base64": null,
   "action_required": null
@@ -162,7 +187,12 @@ Réponse si l'espèce automatique est incertaine :
   "species": {
     "species": "tomato",
     "confidence": 0.62,
-    "source": "auto"
+    "source": "auto",
+    "top_predictions": [
+      {"label": "tomato", "confidence": 0.62},
+      {"label": "pepper", "confidence": 0.21},
+      {"label": "potato", "confidence": 0.08}
+    ]
   },
   "disease": null,
   "gradcam_base64": null,
@@ -187,7 +217,12 @@ Réponse :
 {
   "species": "tomato",
   "confidence": 0.96,
-  "source": "auto"
+  "source": "auto",
+  "top_predictions": [
+    {"label": "tomato", "confidence": 0.96},
+    {"label": "pepper", "confidence": 0.02},
+    {"label": "potato", "confidence": 0.01}
+  ]
 }
 ```
 
@@ -211,14 +246,64 @@ Réponse :
   "species": {
     "species": "tomato",
     "confidence": 1.0,
-    "source": "manual"
+    "source": "manual",
+    "top_predictions": []
   },
   "disease": {
     "disease": "Late_Blight",
-    "confidence": 0.91
+    "confidence": 0.91,
+    "top_predictions": [
+      {"label": "Late_Blight", "confidence": 0.91},
+      {"label": "Early_Blight", "confidence": 0.05},
+      {"label": "Healthy", "confidence": 0.02}
+    ]
   },
   "gradcam_base64": null,
   "action_required": null
+}
+```
+
+### `GET /monitoring/summary`
+
+Retourne une synthèse simple des prédictions traitées par l'API.
+
+L'API écrit un événement JSONL par appel de prédiction, sans stocker l'image uploadée. Les informations suivies sont volontairement limitées :
+
+- endpoint appelé ;
+- mode automatique ou manuel ;
+- statut `ok`, `uncertain_species` ou `error` ;
+- espèce et maladie prédites quand disponibles ;
+- confiances ;
+- temps de réponse ;
+- source des modèles, locale ou Hugging Face Hub.
+
+Exemple :
+
+```bash
+curl http://127.0.0.1:8000/monitoring/summary
+```
+
+Exemple production :
+
+```bash
+curl https://dredfury-plant-disease-detection-api.hf.space/monitoring/summary
+```
+
+Réponse :
+
+```json
+{
+  "enabled": true,
+  "storage": "jsonl",
+  "total_events": 12,
+  "total_predictions": 12,
+  "ok": 9,
+  "uncertain_species": 2,
+  "errors": 1,
+  "average_latency_ms": 842.41,
+  "average_species_confidence": 0.81,
+  "average_disease_confidence": 0.76,
+  "last_event_at": "2026-04-18T10:00:00+00:00"
 }
 ```
 
@@ -258,9 +343,10 @@ En production Hugging Face Spaces, l'API utilise :
 
 ```env
 MODEL_SOURCE=hub
-HF_REPO_ID=<user>/plant-disease-detection-models
+HF_REPO_ID=DredFury/plant-disease-detection-models
 HF_TOKEN=hf_xxxxxxxxxxxxxxxxx
-CONFIDENCE_THRESHOLD=0.85
+CONFIDENCE_THRESHOLD=0.65
+MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
 ```
 
 Le détail du déploiement est décrit dans la page [Déploiement](../deployment.md).

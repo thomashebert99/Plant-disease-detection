@@ -1,47 +1,51 @@
-# Déploiement et Docker
+# Déploiement Et Docker
 
-Cette page décrit le lancement local avec Docker Compose et le déploiement de l'API FastAPI sur Hugging Face Spaces.
+Cette page décrit le lancement local avec Docker Compose et le déploiement public sur Hugging Face Hub et Hugging Face Spaces.
 
-## Services utilisés
+## Ressources En Ligne
 
-Le projet utilise deux ressources Hugging Face :
+| Ressource | Rôle | URL |
+|---|---|---|
+| Model repo | Stockage de `ensemble_config.json` et des checkpoints `.keras` | `https://huggingface.co/DredFury/plant-disease-detection-models` |
+| Space API | Hébergement FastAPI en Docker | `https://dredfury-plant-disease-detection-api.hf.space` |
+| Space Streamlit | Interface utilisateur | `https://dredfury-plant-disease-detection-app.hf.space` |
 
-| Ressource | Rôle |
-|---|---|
-| Model repo `HF_REPO_ID` | Stockage des checkpoints `.keras` et de `ensemble_config.json` |
-| Space Docker API | Hébergement public de l'API FastAPI |
+Le choix Hugging Face est volontairement simple : un repo pour les artefacts ML, un Space pour l'API, un Space pour l'interface.
 
-## Variables à configurer dans le Space API
+## Variables Du Space API
 
 Dans le Space API, ouvrir `Settings` puis `Variables and secrets`.
 
-Ajouter ces valeurs :
+Variables :
 
 ```env
 MODEL_SOURCE=hub
-HF_REPO_ID=<username>/plant-disease-detection-models
+HF_REPO_ID=DredFury/plant-disease-detection-models
+CONFIDENCE_THRESHOLD=0.65
+MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
+```
+
+Secret :
+
+```env
 HF_TOKEN=hf_xxxxxxxxxxxxxxxxx
-CONFIDENCE_THRESHOLD=0.85
 ```
 
-`HF_TOKEN` doit avoir un droit de lecture sur le repo modèle si ce repo est privé.
+`HF_TOKEN` doit avoir un droit de lecture sur le repo modèle si le repo est privé. Il ne doit jamais être commité dans Git.
 
-## Docker
+## Variables Du Space Streamlit
 
-Le `Dockerfile` du projet est compatible Hugging Face Spaces :
+Dans le Space Streamlit, ouvrir `Settings` puis `Variables and secrets`.
 
-- l'API écoute sur le port `7860` par défaut ;
-- `HF_HOME=/tmp/huggingface` place le cache Hugging Face dans un dossier inscriptible ;
-- `MODEL_SOURCE=hub` indique à l'API de télécharger la config et les modèles depuis le Hub.
+Variable :
 
-En local, on peut toujours surcharger le port :
-
-```bash
-docker build -t plant-disease-api .
-docker run --rm -p 8000:8000 -e PORT=8000 plant-disease-api
+```env
+API_URL=https://dredfury-plant-disease-detection-api.hf.space
 ```
 
-## Développement local avec Docker Compose
+Streamlit ne charge aucun modèle. Il envoie les images à l'API et affiche la réponse.
+
+## Docker Local
 
 Le fichier `docker-compose.yml` lance deux services :
 
@@ -61,28 +65,52 @@ Dans Compose, l'API utilise :
 ```env
 MODEL_SOURCE=local
 ENSEMBLE_CONFIG_PATH=/app/models/ensemble_config.json
+CONFIDENCE_THRESHOLD=0.65
+MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
 ```
 
 Le dossier local `models/` est monté dans le conteneur API en lecture seule. Cela évite de copier les checkpoints dans l'image Docker.
 
-Avant la fin du notebook 05, il est normal que `/models/info` indique que la configuration n'est pas disponible. L'API et Streamlit peuvent quand même démarrer ; seules les prédictions retournent une erreur claire tant que `models/ensemble_config.json` n'existe pas.
-
-Après la fin des notebooks 04 puis 05 :
-
-1. vérifier que `models/ensemble_config.json` existe ;
-2. relancer `docker compose up --build` si les conteneurs ne tournent pas déjà ;
-3. ouvrir `http://localhost:8000/models/info` ;
-4. ouvrir `http://localhost:8501` pour tester l'interface.
-
-Streamlit appelle l'API avec cette variable interne au réseau Docker :
+Streamlit appelle l'API avec l'URL interne du réseau Docker :
 
 ```env
 API_URL=http://api:7860
 ```
 
-## Publication des modèles
+## Docker API Seul
 
-Après la fin du notebook 04 puis du notebook 05, le fichier suivant doit exister :
+Le `Dockerfile` API est compatible Hugging Face Spaces :
+
+- l'API écoute sur le port `7860` par défaut ;
+- `HF_HOME=/tmp/huggingface` place le cache Hugging Face dans un dossier inscriptible ;
+- `MODEL_SOURCE=hub` indique à l'API de télécharger la config et les modèles depuis le Hub.
+
+En local, on peut surcharger le port :
+
+```bash
+docker build -t plant-disease-api .
+docker run --rm -p 8000:8000 -e PORT=8000 plant-disease-api
+```
+
+## Docker Streamlit Seul
+
+Le `Dockerfile.streamlit` lance l'interface sur le port `7860`, attendu par Hugging Face Spaces.
+
+Sur Hugging Face Spaces, l'upload de fichiers depuis le navigateur peut déclencher des erreurs liées aux protections CORS/XSRF. Le démarrage Streamlit désactive donc explicitement ces protections dans le conteneur :
+
+```bash
+streamlit run app/streamlit_app.py \
+  --server.port 7860 \
+  --server.address 0.0.0.0 \
+  --server.enableXsrfProtection false \
+  --server.enableCORS false
+```
+
+Ce réglage concerne uniquement l'interface Streamlit. L'API FastAPI reste séparée.
+
+## Publication Des Modèles
+
+Après la fin des notebooks 04 puis 05, le fichier suivant doit exister :
 
 ```text
 models/ensemble_config.json
@@ -102,23 +130,89 @@ python scripts/push_models_to_hub.py
 
 Le script lit `HF_REPO_ID` et `HF_TOKEN` depuis `.env`.
 
+Si une coupure réseau interrompt l'upload, relancer à partir du dernier fichier en erreur :
+
+```bash
+python scripts/push_models_to_hub.py \
+  --start-at models/pepper/03_ConvNeXtTiny_ConvNeXtTiny_ft_l50_lr1e_05.keras \
+  --max-retries 5 \
+  --retry-wait-seconds 30
+```
+
+Le nom passé à `--start-at` doit correspondre au chemin Hugging Face indiqué dans l'erreur.
+
+## Déploiement Des Spaces
+
+Chaque Space est un repo Git Hugging Face. Le principe est :
+
+1. cloner le repo du Space API ;
+2. copier le code nécessaire à l'API : `Dockerfile`, `requirements-api.txt`, `src/`, `README.md` si souhaité ;
+3. commiter et pousser vers le Space API ;
+4. attendre la fin du build Hugging Face ;
+5. vérifier `/health` puis `/models/info` ;
+6. cloner le repo du Space Streamlit ;
+7. copier `Dockerfile.streamlit`, `requirements-streamlit.txt`, `app/streamlit_app.py`, `README.md` si souhaité ;
+8. commiter et pousser vers le Space Streamlit ;
+9. tester l'upload d'une image dans l'interface.
+
+Le build se déclenche automatiquement à chaque `git push`.
+
+Si Git refuse le mot de passe, c'est normal : Hugging Face demande un token ou une clé SSH. La méthode simple est :
+
+```bash
+hf auth login
+git config --global credential.helper store
+```
+
+Ensuite, utiliser le nom de compte Hugging Face comme username et le token comme password quand Git les demande.
+
 ## Vérifications API
 
-Quand le Space API est construit, vérifier :
+Vérifier que l'API répond :
 
 ```text
-https://<username>-plant-disease-detection-api.hf.space/health
-https://<username>-plant-disease-detection-api.hf.space/models/info
+https://dredfury-plant-disease-detection-api.hf.space/health
 ```
 
 Résultat attendu :
 
-- `/health` retourne `{"status": "ok"}` ;
-- `/models/info` retourne `config_available: true` après upload des modèles.
+```json
+{"status": "ok"}
+```
+
+Vérifier que les modèles sont disponibles :
+
+```text
+https://dredfury-plant-disease-detection-api.hf.space/models/info
+```
+
+Résultat attendu :
+
+- `config_available: true` ;
+- `complete: true` ;
+- `model_count: 3` pour chaque tâche ;
+- aucune tâche manquante.
 
 Si `config_available` vaut `false`, vérifier :
 
-- que `MODEL_SOURCE=hub` est bien défini dans le Space ;
-- que `HF_REPO_ID` pointe vers le repo modèle ;
+- que `MODEL_SOURCE=hub` est bien défini dans le Space API ;
+- que `HF_REPO_ID` vaut `DredFury/plant-disease-detection-models` ;
 - que `HF_TOKEN` a accès au repo si celui-ci est privé ;
 - que `scripts/push_models_to_hub.py` a bien uploadé `ensemble_config.json`.
+
+Vérifier le monitoring :
+
+```text
+https://dredfury-plant-disease-detection-api.hf.space/monitoring/summary
+```
+
+Après quelques prédictions, `total_predictions` doit augmenter. Le stockage est volontairement local au conteneur et peut être remis à zéro si le Space redémarre.
+
+## Points De Vigilance
+
+- Le premier diagnostic peut être lent : les modèles sont chargés en lazy loading.
+- Hugging Face Spaces gratuits peuvent dormir après inactivité, donc le premier appel peut aussi réveiller le Space.
+- Les checkpoints sont volumineux : le repo modèle doit rester la source des poids, pas le repo applicatif.
+- Le monitoring JSONL est minimal et éphémère sur Hugging Face Spaces gratuits ; il sert à démontrer l'observabilité du service, pas à remplacer une plateforme de logs production.
+- `.env` doit rester local et ignoré par Git.
+- Si un token Hugging Face a été affiché par erreur, il faut le révoquer et en créer un nouveau.

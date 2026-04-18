@@ -3,19 +3,21 @@
 ## Prérequis
 
 - Python `3.11.9`
-- `venv` ou `pyenv`
+- `pyenv` recommandé ;
 - `pip`
 - Docker, optionnel pour lancer l'API et Streamlit ensemble
 
 ## Environnement local
 
-Le projet fixe Python via `.python-version` et utilise un virtualenv local.
+Le projet fixe Python via `.python-version`. L'environnement principal peut être un environnement `pyenv`, ce qui évite de dépendre d'un dossier `.venv` dans le projet.
 
 ```bash
 pyenv install 3.11.9
 pyenv local 3.11.9
 make install
 ```
+
+Le Makefile sait utiliser l'interpréteur Python actif si le virtualenv local `.venv-plant-disease-detection` n'existe pas.
 
 ## Variantes d'installation
 
@@ -35,11 +37,12 @@ make test
 ## Sans Makefile
 
 ```bash
-python3.11 -m venv .venv
-source .venv/bin/activate
+pyenv local 3.11.9
 pip install --upgrade pip setuptools wheel
 pip install -r requirements-cpu.txt -r requirements-dev.txt
 ```
+
+Une variante avec `venv` reste possible, mais elle n'est pas obligatoire pour ce projet.
 
 ## Conteneur API
 
@@ -54,3 +57,19 @@ Services disponibles :
 - interface Streamlit : `http://localhost:8501`
 
 Avant la génération de `models/ensemble_config.json`, les services peuvent démarrer mais les prédictions restent indisponibles.
+
+## Démo en ligne
+
+Une fois le projet publié, les services publics sont :
+
+| Service | URL |
+|---|---|
+| Interface Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` |
+| API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` |
+
+Pour un test rapide :
+
+```bash
+curl https://dredfury-plant-disease-detection-api.hf.space/health
+curl https://dredfury-plant-disease-detection-api.hf.space/monitoring/summary
+```

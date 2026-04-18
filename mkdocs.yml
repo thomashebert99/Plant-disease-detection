@@ -23,6 +23,8 @@ nav:
   - Accueil: index.md
   - Guide de démarrage: getting_started.md
   - Architecture: architecture.md
+  - Résultats: results.md
+  - Trame de rapport: report.md
   - Déploiement: deployment.md
   - API: api/index.md
   - MLOps: mlops/index.md
