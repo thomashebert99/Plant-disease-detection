@@ -1,4 +1,4 @@
-"""French disease labels and short agronomic information for the Streamlit UI."""
+"""French disease labels and UI-ready agronomic information for Streamlit."""
 
 from __future__ import annotations
 
@@ -15,12 +15,12 @@ SPECIES_LABELS = {
 DISEASE_LABELS = {
     "Apple_Scab": "Tavelure du pommier",
     "Black_Rot": "Pourriture noire",
-    "Cedar_Apple_Rust": "Rouille du cèdre du pommier",
-    "Cercospora_Leaf_Spot": "Cercosporiose / tache grise",
-    "Common_Rust": "Rouille commune",
+    "Cedar_Apple_Rust": "Rouille grillagée du pommier",
+    "Cercospora_Leaf_Spot": "Tache grise / cercosporiose du maïs",
+    "Common_Rust": "Rouille commune du maïs",
     "Northern_Leaf_Blight": "Brûlure septentrionale des feuilles",
-    "Esca_Black_Measles": "Esca / maladie des taches noires",
-    "Leaf_Blight": "Brûlure des feuilles",
+    "Esca_Black_Measles": "Esca / black measles",
+    "Leaf_Blight": "Brûlure des feuilles / Isariopsis",
     "Bacterial_Spot": "Tache bactérienne",
     "Early_Blight": "Mildiou précoce / alternariose",
     "Late_Blight": "Mildiou tardif",
@@ -39,198 +39,300 @@ DISEASE_INFO = {
         "title": "Tavelure du pommier",
         "english": "Apple scab",
         "url": "https://fr.wikipedia.org/wiki/Tavelure_du_pommier",
-        "agent": "Venturia inaequalis, champignon qui infecte feuilles et fruits.",
-        "curative": "Retirer les organes très atteints ; utiliser une protection fongicide en période à risque.",
-        "preventive": "Variétés résistantes, ramassage des feuilles, taille pour aérer, prévention au printemps.",
-        "season_gravity": "Printemps et début d'été ; gravité élevée.",
+        "agent": (
+            "Champignon Venturia inaequalis. Il hiverne dans les feuilles mortes "
+            "et infecte surtout les jeunes feuilles et fruits au printemps."
+        ),
+        "curative": (
+            "Fongicide appliqué très tôt après risque d'infection ; efficacité "
+            "limitée si les symptômes sont déjà bien installés."
+        ),
+        "preventive": (
+            "Ramasser les feuilles mortes, tailler pour aérer, choisir des variétés "
+            "résistantes et protéger préventivement en période à risque."
+        ),
+        "season_gravity": (
+            "Surtout printemps, puis contaminations secondaires possibles en saison. "
+            "Gravité élevée : forte défoliation et baisse de qualité/rendement."
+        ),
     },
     ("apple", "Black_Rot"): {
         "title": "Pourriture noire du pommier",
         "english": "Apple black rot",
-        "url": "https://en.wikipedia.org/wiki/Botryosphaeria_obtusa",
-        "agent": "Botryosphaeria obtusa, champignon associé aux taches foliaires et chancres.",
-        "curative": "Supprimer fruits momifiés, rameaux chancrés et bois mort ; fongicide si forte pression.",
-        "preventive": "Hygiène du verger, taille du bois atteint, bonne aération et limitation des blessures.",
-        "season_gravity": "Printemps à été ; gravité moyenne à élevée.",
+        "url": "https://fr.wikipedia.org/wiki/Botryosphaeria_obtusa",
+        "agent": (
+            "Champignon Botryosphaeria obtusa. Il survit dans les chancres, le bois "
+            "mort et les fruits momifiés."
+        ),
+        "curative": (
+            "Couper et éliminer les rameaux ou organes atteints ; traitement fongicide "
+            "précoce possible pour freiner l'extension."
+        ),
+        "preventive": (
+            "Retirer fruits momifiés et bois mort, désinfecter les outils, limiter "
+            "les blessures et maintenir l'arbre vigoureux."
+        ),
+        "season_gravity": (
+            "Printemps à été, favorisée par chaleur et humidité. Gravité modérée à "
+            "élevée : peut affecter feuilles, fruits et rameaux."
+        ),
     },
     ("apple", "Cedar_Apple_Rust"): {
-        "title": "Rouille du cèdre du pommier",
+        "title": "Rouille grillagée du pommier",
         "english": "Cedar apple rust",
-        "url": "https://en.wikipedia.org/wiki/Gymnosporangium_juniperi-virginianae",
-        "agent": "Gymnosporangium juniperi-virginianae, rouille alternant pommiers et genévriers.",
-        "curative": "Retirer les parties très atteintes ; protéger le pommier au printemps si risque élevé.",
-        "preventive": "Cultivars résistants, gestion des genévriers proches et traitements préventifs au printemps.",
-        "season_gravity": "Printemps et début d'été ; gravité moyenne, élevée localement.",
+        "url": "https://fr.wikipedia.org/wiki/Gymnosporangium_juniperi-virginianae",
+        "agent": (
+            "Champignon Gymnosporangium juniperi-virginianae, avec cycle entre "
+            "pommier et genévrier."
+        ),
+        "curative": (
+            "Pas de vrai curatif sur feuille déjà atteinte ; l'objectif est surtout "
+            "de bloquer les nouvelles infections."
+        ),
+        "preventive": (
+            "Éloigner ou surveiller les genévriers hôtes, couper les galles, choisir "
+            "des variétés tolérantes et protéger au printemps."
+        ),
+        "season_gravity": (
+            "Printemps, lors des pluies douces au moment de la floraison. Gravité "
+            "modérée, surtout foliaire."
+        ),
     },
     ("corn", "Cercospora_Leaf_Spot"): {
-        "title": "Cercosporiose / tache grise du maïs",
+        "title": "Tache grise / cercosporiose du maïs",
         "english": "Gray leaf spot",
-        "url": "https://extension.umn.edu/corn-pest-management/gray-leaf-spot-corn",
-        "agent": "Cercospora zeae-maydis, champignon favorisé par chaleur et forte humidité.",
-        "curative": "Fongicide foliaire si le risque économique est atteint ; les lésions installées ne guérissent pas.",
-        "preventive": "Hybrides résistants, rotation, gestion des résidus et surveillance en conditions humides.",
-        "season_gravity": "Été chaud et humide ; gravité élevée.",
+        "url": "https://fr.wikipedia.org/wiki/Cercosporiose_du_ma%C3%AFs",
+        "agent": (
+            "Champignons Cercospora zeae-maydis et parfois C. zeina. Ils survivent "
+            "dans les résidus de culture."
+        ),
+        "curative": (
+            "Fongicide foliaire en végétation si pression forte, surtout pour protéger "
+            "les feuilles du haut avant ou après floraison."
+        ),
+        "preventive": "Rotation, gestion des résidus, hybrides résistants, densité et aération adaptées.",
+        "season_gravity": (
+            "Été, favorisée par chaleur et forte humidité. Gravité élevée : baisse "
+            "notable du remplissage du grain si l'attaque monte tôt."
+        ),
     },
     ("corn", "Common_Rust"): {
         "title": "Rouille commune du maïs",
         "english": "Common rust",
-        "url": "https://en.wikipedia.org/wiki/Puccinia_sorghi",
-        "agent": "Puccinia sorghi, champignon responsable de pustules de rouille.",
-        "curative": "Fongicide possible si infection précoce et forte pression sur hybride sensible.",
-        "preventive": "Hybrides moins sensibles, surveillance et intervention seulement si risque réel.",
-        "season_gravity": "Été frais à modéré et humide ; gravité moyenne.",
+        "url": "https://fr.wikipedia.org/wiki/Puccinia_sorghi",
+        "agent": "Champignon Puccinia sorghi, disséminé par spores aériennes.",
+        "curative": (
+            "Pas de guérison des pustules existantes ; traitement foliaire possible "
+            "pour ralentir la progression si attaque précoce."
+        ),
+        "preventive": "Hybrides résistants, surveillance régulière et gestion adaptée selon pression locale.",
+        "season_gravity": (
+            "Été, surtout conditions fraîches à modérées et humides. Gravité faible "
+            "à modérée, plus gênante si l'attaque est précoce."
+        ),
     },
     ("corn", "Northern_Leaf_Blight"): {
         "title": "Brûlure septentrionale des feuilles",
         "english": "Northern corn leaf blight",
         "url": "https://fr.wikipedia.org/wiki/Helminthosporiose_du_ma%C3%AFs",
-        "agent": "Setosphaeria turcica / Exserohilum turcicum.",
-        "curative": "Fongicide foliaire pour freiner l'extension si les feuilles hautes sont menacées.",
-        "preventive": "Hybrides résistants, rotation avec non-graminées et gestion des résidus.",
-        "season_gravity": "Été humide à températures modérées ; gravité élevée.",
+        "agent": "Champignon Exserohilum turcicum. Il hiverne dans les résidus de maïs.",
+        "curative": (
+            "Fongicide foliaire en végétation quand les premières lésions progressent "
+            "et que la météo reste favorable."
+        ),
+        "preventive": (
+            "Hybrides résistants, rotation, destruction ou enfouissement des résidus "
+            "et bonne gestion parcellaire."
+        ),
+        "season_gravity": (
+            "Été, favorisée par humidité prolongée et températures modérées. Gravité "
+            "élevée si installée avant ou autour de la floraison."
+        ),
     },
     ("grape", "Black_Rot"): {
         "title": "Pourriture noire de la vigne",
-        "english": "Grape black rot",
-        "url": "https://fr.wikipedia.org/wiki/Black_rot",
-        "agent": "Guignardia bidwellii, champignon destructeur sur feuilles et grappes.",
-        "curative": "Supprimer grappes momifiées et organes très atteints ; protéger les nouveaux tissus.",
-        "preventive": "Assainissement, aération du couvert et programme préventif par temps chaud et humide.",
-        "season_gravity": "Printemps à été ; gravité élevée.",
+        "english": "Black rot",
+        "url": "https://fr.wikipedia.org/wiki/Pourriture_noire_de_la_vigne",
+        "agent": (
+            "Champignon Guignardia bidwellii. Il hiverne surtout dans les baies "
+            "momifiées et tissus infectés."
+        ),
+        "curative": "Intervention fongicide précoce possible, mais l'assainissement reste essentiel.",
+        "preventive": (
+            "Retirer les baies momifiées, aérer la vigne, réduire l'humidité et "
+            "protéger au printemps-début été."
+        ),
+        "season_gravity": (
+            "Printemps à été, avec temps chaud et humide. Gravité très élevée : "
+            "peut compromettre fortement la récolte."
+        ),
     },
     ("grape", "Esca_Black_Measles"): {
-        "title": "Esca / maladie des taches noires",
-        "english": "Black measles",
-        "url": "https://fr.wikipedia.org/wiki/Esca",
-        "agent": "Complexe de champignons des maladies du bois de la vigne.",
-        "curative": "Pas de vrai curatif fongicide ; curetage, reformation ou remplacement des ceps atteints.",
-        "preventive": "Protéger les plaies de taille, tailler par temps sec et limiter les grosses plaies.",
-        "season_gravity": "Symptômes surtout en été ; gravité élevée.",
+        "title": "Esca / black measles",
+        "english": "Esca / black measles",
+        "url": "https://fr.wikipedia.org/wiki/Esca_(maladie)",
+        "agent": (
+            "Complexe de champignons du bois, notamment Phaeomoniella chlamydospora, "
+            "Phaeoacremonium spp. et Fomitiporia mediterranea."
+        ),
+        "curative": (
+            "Pas de vrai traitement curatif fiable ; on retire souvent les parties "
+            "très atteintes, voire le cep."
+        ),
+        "preventive": "Protéger les plaies de taille, utiliser du matériel sain, limiter les contaminations du bois.",
+        "season_gravity": (
+            "Symptômes foliaires surtout en été ; maladie chronique sur plusieurs "
+            "années. Gravité élevée."
+        ),
     },
     ("grape", "Leaf_Blight"): {
-        "title": "Brûlure des feuilles de la vigne",
+        "title": "Brûlure des feuilles / Isariopsis leaf spot",
         "english": "Isariopsis leaf spot",
-        "url": "https://en.wikipedia.org/wiki/Pseudocercospora_vitis",
-        "agent": "Pseudocercospora vitis, champignon foliaire.",
-        "curative": "Retirer les feuilles très atteintes ; fongicide si la pression augmente.",
-        "preventive": "Aération du feuillage, palissage, effeuillage raisonné et assainissement.",
-        "season_gravity": "Saison de croissance, souvent fin de saison ; gravité faible à moyenne.",
+        "url": "https://fr.wikipedia.org/wiki/Pseudocercospora_vitis",
+        "agent": "Champignon Pseudocercospora vitis.",
+        "curative": "Fongicide foliaire possible dès les premiers symptômes si pression réelle.",
+        "preventive": "Assainissement, aération de la canopée et gestion de l'humidité.",
+        "season_gravity": (
+            "Fin d'été à automne, surtout par temps chaud et humide. Gravité faible "
+            "à modérée."
+        ),
     },
     ("pepper", "Bacterial_Spot"): {
         "title": "Tache bactérienne du poivron",
         "english": "Bacterial spot",
-        "url": "https://ipm.ucanr.edu/agriculture/peppers/bacterial-spot/",
-        "agent": "Complexe de bactéries Xanthomonas.",
-        "curative": "Pas de guérison des tissus infectés ; retirer les foyers et limiter la propagation.",
-        "preventive": "Plants sains, rotation, irrigation au goutte-à-goutte et limitation du feuillage mouillé.",
-        "season_gravity": "Saison chaude et humide ; gravité élevée si introduction précoce.",
+        "url": "https://fr.wikipedia.org/wiki/Xanthomonas_euvesicatoria",
+        "agent": "Bactéries du genre Xanthomonas, plusieurs espèces ou pathovars selon les cas.",
+        "curative": "Pas de vrai curatif ; les produits cupriques peuvent seulement freiner l'évolution.",
+        "preventive": (
+            "Semences ou plants sains, désinfection, rotation, irrigation évitant de "
+            "mouiller le feuillage, variétés résistantes quand disponibles."
+        ),
+        "season_gravity": "Été ou serre chaude/humide. Gravité élevée : dommageable sur feuillage et fruits.",
     },
     ("potato", "Early_Blight"): {
         "title": "Mildiou précoce / alternariose",
         "english": "Early blight",
-        "url": "https://fr.wikipedia.org/wiki/Alternaria_solani",
-        "agent": "Alternaria solani, champignon favorisé par stress et humidité.",
-        "curative": "Retirer les feuilles très atteintes ; fongicide anti-alternariose si risque confirmé.",
-        "preventive": "Rotation, destruction des résidus, fertilisation équilibrée et variétés moins sensibles.",
-        "season_gravity": "Été ou période chaude ; gravité moyenne à élevée.",
+        "url": "https://fr.wikipedia.org/wiki/Alternariose_de_la_pomme_de_terre",
+        "agent": "Champignon Alternaria solani, favorisé par le stress des plantes et les résidus contaminés.",
+        "curative": "Fongicide dès les premières lésions pour limiter la défoliation.",
+        "preventive": "Rotation, destruction des résidus, nutrition et irrigation équilibrées, variétés tolérantes.",
+        "season_gravity": (
+            "Été, plutôt en deuxième partie de cycle. Gravité modérée à élevée si la "
+            "défoliation devient importante."
+        ),
     },
     ("potato", "Late_Blight"): {
-        "title": "Mildiou tardif de la pomme de terre",
+        "title": "Mildiou tardif",
         "english": "Late blight",
         "url": "https://fr.wikipedia.org/wiki/Mildiou_de_la_pomme_de_terre",
-        "agent": "Phytophthora infestans, oomycète à propagation rapide.",
-        "curative": "Détruire rapidement les foyers ; traitements anti-oomycètes adaptés selon le risque.",
-        "preventive": "Plants sains, surveillance météo, prévention précoce et bonne aération.",
-        "season_gravity": "Temps frais à doux et humide ; gravité très élevée.",
+        "agent": (
+            "Oomycète Phytophthora infestans. Il se conserve surtout dans les "
+            "tubercules infectés et se disperse rapidement par sporanges."
+        ),
+        "curative": (
+            "Réaction très rapide nécessaire ; produits anti-mildiou pour freiner "
+            "les nouvelles contaminations, avec élimination des foyers si besoin."
+        ),
+        "preventive": (
+            "Plants sains, surveillance météo, protection préventive, destruction "
+            "des repousses et déchets de pommes de terre."
+        ),
+        "season_gravity": "Été, surtout temps frais à doux et très humide. Gravité très élevée.",
     },
     ("strawberry", "Leaf_Scorch"): {
-        "title": "Brûlure des feuilles du fraisier",
+        "title": "Brûlure des feuilles",
         "english": "Leaf scorch",
-        "url": "https://en.wikipedia.org/wiki/Diplocarpon_earlianum",
-        "agent": "Diplocarpon earlianum, champignon foliaire.",
-        "curative": "Enlever feuilles et débris atteints ; fongicide si la pression devient forte.",
-        "preventive": "Plants sains, espacement, éviter l'aspersion, rotation et assainissement.",
-        "season_gravity": "Printemps humide à été ; gravité moyenne.",
+        "url": "https://fr.wikipedia.org/wiki/Diplocarpon_earlianum",
+        "agent": "Champignon Diplocarpon earlianum, conservé dans les débris infectés.",
+        "curative": "Fongicide possible dès les premiers symptômes, surtout si les conditions restent humides.",
+        "preventive": "Plants sains, rotation, paillage, irrigation sans mouiller le feuillage et nettoyage des débris.",
+        "season_gravity": "Printemps à été. Gravité modérée : affaiblit les plants et peut réduire la production.",
     },
     ("tomato", "Bacterial_Spot"): {
-        "title": "Tache bactérienne de la tomate",
+        "title": "Tache bactérienne",
         "english": "Bacterial spot",
-        "url": "https://ipm.ucanr.edu/agriculture/tomato/bacterial-spot/",
-        "agent": "Complexe de bactéries Xanthomonas.",
-        "curative": "Pas de cure des tissus infectés ; suppression des foyers et protection de couverture.",
-        "preventive": "Semences/plants sains, rotation, arrosage au pied et hygiène stricte.",
-        "season_gravity": "Chaud et humide ; gravité élevée.",
+        "url": "https://fr.wikipedia.org/wiki/Xanthomonas_vesicatoria",
+        "agent": "Bactéries du genre Xanthomonas, favorisées par éclaboussures, manipulation et humidité.",
+        "curative": "Pas de curatif réel ; les produits à base de cuivre aident surtout à limiter la propagation.",
+        "preventive": "Semences ou plants sains, rotation, hygiène stricte, irrigation localisée et destruction des résidus.",
+        "season_gravity": "Été chaud et humide. Gravité élevée : forte défoliation et pertes sur fruits.",
     },
     ("tomato", "Early_Blight"): {
-        "title": "Mildiou précoce / alternariose de la tomate",
+        "title": "Mildiou précoce / alternariose",
         "english": "Early blight",
         "url": "https://fr.wikipedia.org/wiki/Alternaria_solani",
-        "agent": "Alternaria solani, parfois Alternaria tomatophila sur tomate.",
-        "curative": "Supprimer les feuilles basses très atteintes ; fongicide si la maladie progresse.",
-        "preventive": "Rotation, tuteurage, paillage, arrosage au pied et bonne circulation d'air.",
-        "season_gravity": "Temps modéré à chaud avec humidité foliaire ; gravité moyenne à élevée.",
+        "agent": (
+            "Champignon Alternaria solani. Il attaque surtout les feuilles basses "
+            "et forme des lésions concentriques typiques."
+        ),
+        "curative": "Fongicide précoce et suppression des feuilles très atteintes.",
+        "preventive": "Rotation, paillage, tuteurage, aération, élimination des résidus, fertilisation équilibrée.",
+        "season_gravity": "Été. Gravité modérée à élevée : défoliation progressive et brûlure solaire des fruits.",
     },
     ("tomato", "Late_Blight"): {
-        "title": "Mildiou tardif de la tomate",
+        "title": "Mildiou tardif",
         "english": "Late blight",
-        "url": "https://ipm.ucanr.edu/agriculture/tomato/late-blight/",
-        "agent": "Phytophthora infestans.",
-        "curative": "Détruire rapidement les plants très atteints ; traiter très tôt en période à risque.",
-        "preventive": "Plants sains, aération, surveillance météo et prévention précoce.",
-        "season_gravity": "Temps frais à doux et humide ; gravité très élevée.",
+        "url": "https://fr.wikipedia.org/wiki/Phytophthora_infestans",
+        "agent": "Oomycète Phytophthora infestans.",
+        "curative": (
+            "Traitement immédiat anti-mildiou pour contenir la flambée ; efficacité "
+            "limitée si l'attaque est déjà avancée."
+        ),
+        "preventive": "Plants sains, aération, surveillance météo, protection préventive en période fraîche et humide.",
+        "season_gravity": "Été, surtout temps frais à doux et humide. Gravité très élevée : progression très rapide.",
     },
     ("tomato", "Leaf_Mold"): {
-        "title": "Moisissure des feuilles de la tomate",
-        "english": "Tomato leaf mold",
-        "url": "https://extension.umn.edu/disease-management/tomato-leaf-mold",
-        "agent": "Passalora fulva, anciennement Fulvia fulva ou Cladosporium fulvum.",
-        "curative": "Retirer les feuilles atteintes, réduire l'humidité et utiliser un fongicide si besoin.",
-        "preventive": "Ventilation, éviter la condensation, arrosage au pied et variétés résistantes.",
-        "season_gravity": "Surtout sous serre ou forte humidité ; gravité moyenne à élevée.",
+        "title": "Moisissure des feuilles",
+        "english": "Leaf mold",
+        "url": "https://fr.wikipedia.org/wiki/Cladosporiose_de_la_tomate",
+        "agent": "Champignon Passalora fulva, anciennement Cladosporium fulvum, très fréquent sous serre.",
+        "curative": "Fongicide possible au début, avec retrait des feuilles très touchées.",
+        "preventive": "Ventilation, baisse de l'humidité, irrigation au sol, désinfection de serre et variétés résistantes.",
+        "season_gravity": "Surtout en serre lorsque l'humidité reste élevée. Gravité modérée.",
     },
     ("tomato", "Mosaic_Virus"): {
         "title": "Virus de la mosaïque de la tomate",
         "english": "Tomato mosaic virus",
         "url": "https://fr.wikipedia.org/wiki/Virus_de_la_mosa%C3%AFque_de_la_tomate",
-        "agent": "Tomato mosaic virus, virus transmis surtout mécaniquement.",
-        "curative": "Aucun curatif ; éliminer les plants infectés et désinfecter outils et supports.",
-        "preventive": "Semences saines, variétés résistantes et hygiène stricte.",
-        "season_gravity": "Toute la saison si introduit ; gravité élevée.",
+        "agent": "Tomato mosaic virus, virus très stable transmis surtout mécaniquement.",
+        "curative": "Aucun ; arracher et détruire les plants atteints.",
+        "preventive": "Semences saines, hygiène stricte, désinfection des mains/outils et variétés résistantes.",
+        "season_gravity": "Toute la saison. Gravité modérée à élevée : baisse de rendement et fruits déformés.",
     },
     ("tomato", "Septoria_Leaf_Spot"): {
-        "title": "Septoriose de la tomate",
+        "title": "Septoriose",
         "english": "Septoria leaf spot",
         "url": "https://fr.wikipedia.org/wiki/Septoria_lycopersici",
-        "agent": "Septoria lycopersici, champignon foliaire.",
-        "curative": "Supprimer les feuilles atteintes ; fongicide de protection si la pression augmente.",
-        "preventive": "Rotation, paillage, tuteurage, arrosage au pied et retrait des débris.",
-        "season_gravity": "Temps chaud à modéré et humide ; gravité moyenne à élevée.",
+        "agent": "Champignon Septoria lycopersici, souvent parti du bas du feuillage.",
+        "curative": "Fongicide dès les premiers points nécrotiques et retrait des feuilles les plus atteintes.",
+        "preventive": "Rotation, paillage, arrosage au pied, tuteurage, suppression des débris et adventices hôtes.",
+        "season_gravity": "Été humide. Gravité élevée : peut défolier fortement la plante.",
     },
     ("tomato", "Spider_Mites"): {
         "title": "Acariens tétranyques",
-        "english": "Two-spotted spider mites",
-        "url": "https://en.wikipedia.org/wiki/Tetranychus_urticae",
-        "agent": "Tetranychus urticae, acarien favorisé par chaleur et sécheresse.",
-        "curative": "Doucher le dessous des feuilles, savon insecticide, huile horticole ou acaricide si besoin.",
-        "preventive": "Surveiller tôt, limiter le stress hydrique, réduire la poussière et préserver les auxiliaires.",
-        "season_gravity": "Temps chaud et sec ; gravité moyenne, élevée en serre ou canicule.",
+        "english": "Two-spotted spider mite",
+        "url": "https://fr.wikipedia.org/wiki/Tetranychus_urticae",
+        "agent": "Acarien Tetranychus urticae, qui pique les cellules foliaires et tisse de fines toiles.",
+        "curative": "Acaricide ciblé, savon/huile selon contexte, ou lutte biologique par acariens prédateurs.",
+        "preventive": "Surveillance sous les feuilles, culture moins stressée et préservation des auxiliaires.",
+        "season_gravity": "Été chaud et sec, ou toute l'année sous serre. Gravité modérée à élevée.",
     },
     ("tomato", "Target_Spot"): {
-        "title": "Tache cible de la tomate",
+        "title": "Tache cible",
         "english": "Target spot",
-        "url": "https://en.wikipedia.org/wiki/List_of_tomato_diseases",
-        "agent": "Corynespora cassiicola.",
-        "curative": "Retirer les feuilles très atteintes ; fongicide si la maladie progresse.",
-        "preventive": "Rotation, destruction des résidus, espacement, taille et réduction de l'humidité foliaire.",
-        "season_gravity": "Humidité élevée et températures modérées à chaudes ; gravité moyenne à élevée.",
+        "url": "https://fr.wikipedia.org/wiki/Corynespora_cassiicola",
+        "agent": "Champignon Corynespora cassiicola.",
+        "curative": "Fongicide dès les premières lésions, surtout si climat durablement humide.",
+        "preventive": "Rotation, aération, plants sains et destruction des résidus.",
+        "season_gravity": "Été chaud et humide. Gravité modérée à élevée : peut toucher feuilles et fruits.",
     },
     ("tomato", "Yellow_Leaf_Curl_Virus"): {
         "title": "Virus de l'enroulement jaune des feuilles",
         "english": "Tomato yellow leaf curl virus",
-        "url": "https://fr.wikipedia.org/wiki/Virus_des_feuilles_jaunes_en_cuill%C3%A8re_de_la_tomate",
-        "agent": "Tomato yellow leaf curl virus, transmis surtout par Bemisia tabaci.",
-        "curative": "Aucun curatif ; arracher les foyers limités et contrôler fortement les aleurodes.",
-        "preventive": "Variétés tolérantes, contrôle du vecteur, filets, élimination des réservoirs adventices.",
-        "season_gravity": "Saison chaude et forte pression d'aleurodes ; gravité très élevée.",
+        "url": "https://fr.wikipedia.org/wiki/Virus_de_l%27enroulement_jaune_en_cuill%C3%A8re_de_la_tomate",
+        "agent": "Bégomovirus TYLCV, transmis par l'aleurode Bemisia tabaci.",
+        "curative": "Aucun ; arracher rapidement les plants infectés.",
+        "preventive": "Variétés résistantes, contrôle des aleurodes, filets, gestion des adventices hôtes.",
+        "season_gravity": "Toute la saison en zones chaudes, surtout été en zones tempérées. Gravité très élevée.",
     },
 }

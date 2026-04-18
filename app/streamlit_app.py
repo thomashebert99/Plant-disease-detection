@@ -13,7 +13,11 @@ from urllib import error, request
 
 import streamlit as st
 from dotenv import load_dotenv
-from app.disease_info import DISEASE_INFO, DISEASE_LABELS, SPECIES_LABELS
+
+try:
+    from app.disease_info import DISEASE_INFO, DISEASE_LABELS, SPECIES_LABELS
+except ModuleNotFoundError:
+    from disease_info import DISEASE_INFO, DISEASE_LABELS, SPECIES_LABELS
 
 DEFAULT_API_URL = "http://localhost:8000"
 REQUEST_TIMEOUT_SECONDS = 60
@@ -111,6 +115,25 @@ def configure_page() -> None:
             color: #16735f;
             font-size: 0.86rem;
         }
+        .responsive-image {
+            width: min(100%, 360px);
+            max-height: 360px;
+            object-fit: contain;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+        .responsive-image.upload-preview {
+            width: min(100%, 420px);
+            max-height: 320px;
+        }
+        .image-caption {
+            color: #6b7280;
+            font-size: 0.84rem;
+            text-align: center;
+            margin-top: 0.35rem;
+            overflow-wrap: anywhere;
+        }
         .info-panel {
             border: 1px solid #d7dee8;
             border-radius: 8px;
@@ -125,6 +148,18 @@ def configure_page() -> None:
         }
         .info-panel p {
             margin: 0.45rem 0;
+            line-height: 1.45;
+        }
+        .info-row {
+            display: grid;
+            grid-template-columns: 1.45rem minmax(0, 1fr);
+            column-gap: 0.35rem;
+            align-items: start;
+            margin: 0.6rem 0;
+            line-height: 1.45;
+        }
+        .info-icon {
+            text-align: center;
             line-height: 1.45;
         }
         .ranked-row {
@@ -159,6 +194,18 @@ def configure_page() -> None:
             .info-panel h4,
             .ranked-label { color: #e2eaf4; }
             .ranked-confidence { color: #4dba99; }
+            .image-caption { color: #9ca3af; }
+        }
+        @media (max-width: 900px) {
+            .main .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            .responsive-image,
+            .responsive-image.upload-preview {
+                width: min(100%, 320px);
+                max-height: 280px;
+            }
         }
         </style>
         """,
@@ -229,7 +276,11 @@ def render_input_panel() -> tuple[Any | None, str | None, bool]:
             help="Utilisez une image nette, idéalement centrée sur une feuille.",
         )
         if uploaded_file is not None:
-            st.image(uploaded_file, caption="Image chargée", width=420)
+            render_responsive_image(
+                uploaded_file.getvalue(),
+                caption="Image chargée",
+                css_class="upload-preview",
+            )
         else:
             st.info("Ajoutez une image pour lancer le diagnostic.")
 
@@ -443,7 +494,7 @@ def render_prediction_overview(
         image_bytes = st.session_state.get("last_image_bytes")
         image_name = st.session_state.get("last_image_name", "Image envoyée")
         if image_bytes:
-            st.image(image_bytes, caption=image_name, width=340)
+            render_responsive_image(image_bytes, caption=image_name)
 
     with right:
         disease_label = disease.get("disease") if disease else None
@@ -485,11 +536,43 @@ def render_disease_information(species: Any, disease: Any) -> None:
         f"""
         <div class="info-panel">
             <h4>Plus d'informations</h4>
-            <p><strong>Agent causatif :</strong> {html.escape(str(info["agent"]))}</p>
-            <p><strong>Traitement curatif :</strong> {html.escape(str(info["curative"]))}</p>
-            <p><strong>Traitement préventif :</strong> {html.escape(str(info["preventive"]))}</p>
-            <p><strong>Saison / gravité :</strong> {html.escape(str(info["season_gravity"]))}</p>
+            <div class="info-row">
+                <span class="info-icon">🌿</span>
+                <span><strong>Agent causatif :</strong> {html.escape(str(info["agent"]))}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-icon">🩺</span>
+                <span><strong>Traitement curatif :</strong> {html.escape(str(info["curative"]))}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-icon">💊</span>
+                <span><strong>Traitement préventif :</strong> {html.escape(str(info["preventive"]))}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-icon">🛡️</span>
+                <span><strong>Saison / gravité :</strong> {html.escape(str(info["season_gravity"]))}</span>
+            </div>
         </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_responsive_image(
+    image_bytes: bytes,
+    *,
+    caption: str,
+    css_class: str = "",
+) -> None:
+    """Render an image with CSS constraints instead of a fixed pixel width."""
+
+    encoded = base64.b64encode(image_bytes).decode("ascii")
+    safe_caption = html.escape(caption)
+    extra_class = f" {css_class}" if css_class else ""
+    st.markdown(
+        f"""
+        <img class="responsive-image{extra_class}" src="data:image/jpeg;base64,{encoded}" alt="{safe_caption}">
+        <div class="image-caption">{safe_caption}</div>
         """,
         unsafe_allow_html=True,
     )
