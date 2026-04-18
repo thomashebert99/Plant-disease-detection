@@ -3,7 +3,9 @@ FROM python:3.11.9-slim
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PORT=7860 \
+    HF_HOME=/tmp/huggingface
 ENV PIP_DEFAULT_TIMEOUT=120
 
 RUN apt-get update \
@@ -16,6 +18,6 @@ RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
 
 COPY src ./src
 
-EXPOSE 8000
+EXPOSE 7860
 
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]

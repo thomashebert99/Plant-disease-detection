@@ -4,18 +4,78 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  TF_CPP_MIN_LOG_LEVEL: "2"
+  CUDA_VISIBLE_DEVICES: ""
+  MPLCONFIGDIR: /tmp/matplotlib
 
 jobs:
-  scaffold-check:
+  test:
+    name: Tests, docs and import checks
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify project scaffold
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements-common.txt
+            requirements-cpu.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
         run: |
-          test -f requirements-cpu.txt
-          test -f requirements-dev.txt
-          test -d src
-          test -d tests
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements-cpu.txt -r requirements-dev.txt
+
+      - name: Compile Python entrypoints
+        run: |
+          python -m py_compile \
+            app/streamlit_app.py \
+            scripts/push_models_to_hub.py \
+            src/api/main.py \
+            src/api/model_loader.py \
+            src/api/preprocessing.py \
+            src/api/routers/health.py \
+            src/api/routers/models.py \
+            src/api/routers/predict.py \
+            src/api/schemas.py
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Enforce coverage threshold
+        run: python -m coverage report --fail-under=70
+
+      - name: Build documentation
+        run: python -m mkdocs build --strict
+
+  docker-api:
+    name: API Docker build
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t plant-disease-detection-api:ci .

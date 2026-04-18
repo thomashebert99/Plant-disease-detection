@@ -1,14 +1,15 @@
-# Getting Started
+# Guide de démarrage
 
 ## Prérequis
 
 - Python `3.11.9`
-- `venv`
+- `venv` ou `pyenv`
 - `pip`
+- Docker, optionnel pour lancer l'API et Streamlit ensemble
 
 ## Environnement local
 
-Le projet fixe Python via [`.python-version`](/home/thomashebert99/code/thomashebert99/Plant-disease-detection/.python-version) et utilise un virtualenv local `.venv`.
+Le projet fixe Python via `.python-version` et utilise un virtualenv local.
 
 ```bash
 pyenv install 3.11.9
@@ -24,12 +25,12 @@ make install-gpu  # variante locale GPU TensorFlow (RTX 4090)
 make test
 ```
 
-## Jeux de donnees
+## Jeux de données
 
-- `data/processed/` contient toutes les classes retenues du projet a partir de PlantVillage.
-- `data/test_ood/` contient uniquement le sous-ensemble de classes reellement disponibles dans PlantDoc apres alignement.
-- Une classe absente de PlantDoc n'est pas retiree du projet ni de l'entrainement : cela signifie seulement qu'elle n'est pas encore evaluee en OOD avec ce dataset.
-- Si un autre dataset ou des images perso couvrent ces classes plus tard, elles pourront etre ajoutees a l'evaluation sans changer le perimetre du modele.
+- `data/processed/` contient toutes les classes retenues du projet à partir de PlantVillage.
+- `data/test_ood/` contient uniquement le sous-ensemble de classes réellement disponibles dans PlantDoc après alignement.
+- Une classe absente de PlantDoc n'est pas retirée du projet ni de l'entraînement : cela signifie seulement qu'elle n'est pas encore évaluée en OOD avec ce dataset.
+- Si un autre dataset ou des images personnelles couvrent ces classes plus tard, elles pourront être ajoutées à l'évaluation sans changer le périmètre du modèle.
 
 ## Sans Makefile
 
@@ -46,4 +47,10 @@ pip install -r requirements-cpu.txt -r requirements-dev.txt
 docker compose up --build
 ```
 
-L'API FastAPI sera disponible sur `http://localhost:8000`.
+Services disponibles :
+
+- API FastAPI : `http://localhost:8000`
+- documentation OpenAPI : `http://localhost:8000/docs`
+- interface Streamlit : `http://localhost:8501`
+
+Avant la génération de `models/ensemble_config.json`, les services peuvent démarrer mais les prédictions restent indisponibles.

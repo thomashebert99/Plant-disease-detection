@@ -1,6 +1,6 @@
-site_name: Phyto Diagnose
-site_description: Documentation du projet de diagnostic phytosanitaire
-site_author: Ton Nom
+site_name: Plant Disease Detection
+site_description: Documentation du projet de diagnostic foliaire par image
+site_author: Plant Disease Detection
 
 theme:
   name: material
@@ -23,6 +23,7 @@ nav:
   - Accueil: index.md
   - Guide de démarrage: getting_started.md
   - Architecture: architecture.md
+  - Déploiement: deployment.md
   - API: api/index.md
   - MLOps: mlops/index.md
 

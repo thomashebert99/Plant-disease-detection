@@ -1,9 +1,25 @@
-version: "3.9"
-
 services:
   api:
     build:
       context: .
-    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+      dockerfile: Dockerfile
+    environment:
+      MODEL_SOURCE: local
+      ENSEMBLE_CONFIG_PATH: /app/models/ensemble_config.json
+      CONFIDENCE_THRESHOLD: "0.85"
+      PORT: "7860"
     ports:
-      - "8000:8000"
+      - "8000:7860"
+    volumes:
+      - ./models:/app/models:ro
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    environment:
+      API_URL: http://api:7860
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
