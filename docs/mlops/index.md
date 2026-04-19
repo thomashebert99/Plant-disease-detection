@@ -38,6 +38,13 @@ Le suivi combine MLflow/DagsHub et des fichiers simples :
 
 Ce choix est adapté au calendrier du projet : il reste compréhensible, versionnable et facile à expliquer dans le rapport. MLflow/DagsHub couvre le suivi expérimental des entraînements et benchmarks ; le monitoring du service déployé reste séparé et repose sur les logs JSONL exposés par `/monitoring/summary`.
 
+Après la sélection finale, le script `scripts/log_final_selection_to_mlflow.py` permet de créer un run MLflow récapitulatif sans relancer d'entraînement. Il lit `ensemble_config.json` et les CSV du dossier `models/ensemble/`, puis logge les paramètres de sélection, les métriques globales et les artefacts de décision.
+
+```bash
+make log-final-selection-dry-run
+make log-final-selection
+```
+
 ## Sélection Finale
 
 La stratégie retenue est `top3_max2_family`.

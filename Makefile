@@ -4,7 +4,7 @@ VENV_PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 RUN_PYTHON := $(if $(wildcard $(VENV_PYTHON)),$(VENV_PYTHON),$(PYTHON))
 
-.PHONY: venv install install-gpu test docs run-api run-app verify-gpu push-models clean-venv
+.PHONY: venv install install-gpu test docs run-api run-app verify-gpu push-models log-final-selection-dry-run log-final-selection clean-venv
 
 venv:             ## Créer le virtualenv local si besoin
 	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
@@ -33,6 +33,12 @@ verify-gpu:       ## Vérifier la détection GPU TensorFlow
 
 push-models:      ## Uploader les modèles entraînés sur HF Hub
 	$(RUN_PYTHON) scripts/push_models_to_hub.py
+
+log-final-selection-dry-run: ## Prévisualiser le run MLflow de sélection finale
+	$(RUN_PYTHON) scripts/log_final_selection_to_mlflow.py --dry-run
+
+log-final-selection: ## Logger la sélection finale dans MLflow/DagsHub
+	$(RUN_PYTHON) scripts/log_final_selection_to_mlflow.py
 
 clean-venv:       ## Supprimer le virtualenv local
 	rm -rf $(VENV)

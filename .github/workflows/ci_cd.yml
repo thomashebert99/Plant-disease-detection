@@ -49,6 +49,7 @@ jobs:
         run: |
           python -m py_compile \
             app/streamlit_app.py \
+            scripts/log_final_selection_to_mlflow.py \
             scripts/push_models_to_hub.py \
             src/api/main.py \
             src/api/model_loader.py \

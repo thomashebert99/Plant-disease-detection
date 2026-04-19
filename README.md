@@ -90,6 +90,8 @@ make docs        # servir la documentation MkDocs
 make run-api     # lancer FastAPI sur http://localhost:8000
 make run-app     # lancer Streamlit sur http://localhost:8501
 make push-models # publier les modèles finaux sur Hugging Face Hub
+make log-final-selection-dry-run # prévisualiser le run MLflow final
+make log-final-selection         # logger la sélection finale dans MLflow/DagsHub
 ```
 
 Lancement complet avec Docker Compose :
