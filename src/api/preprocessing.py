@@ -24,7 +24,7 @@ def preprocess_image_bytes(
         with Image.open(BytesIO(image_bytes)) as image:
             image = image.convert("RGB").resize((image_size, image_size))
             array = np.asarray(image, dtype="float32")
-    except UnidentifiedImageError as exc:
+    except (OSError, UnidentifiedImageError) as exc:
         raise ValueError("Le fichier fourni n'est pas une image lisible.") from exc
 
     return np.expand_dims(array, axis=0)

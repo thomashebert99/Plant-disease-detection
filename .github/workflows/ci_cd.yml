@@ -37,6 +37,9 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements-common.txt
+            requirements-api.txt
+            requirements-streamlit.txt
+            requirements-training.txt
             requirements-cpu.txt
             requirements-dev.txt
 
@@ -48,6 +51,7 @@ jobs:
       - name: Compile Python entrypoints
         run: |
           python -m py_compile \
+            app/api_client.py \
             app/streamlit_app.py \
             scripts/log_final_selection_to_mlflow.py \
             scripts/push_models_to_hub.py \
@@ -57,7 +61,8 @@ jobs:
             src/api/routers/health.py \
             src/api/routers/models.py \
             src/api/routers/predict.py \
-            src/api/schemas.py
+            src/api/schemas.py \
+            src/data/files.py
 
       - name: Run tests
         run: python -m pytest

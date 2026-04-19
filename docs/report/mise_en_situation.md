@@ -213,7 +213,7 @@ TensorFlow n'est chargé qu'au premier appel de prédiction ; le démarrage du c
 
 ### Dockerfile Streamlit
 
-Le `Dockerfile.streamlit` ne contient pas TensorFlow. Il installe uniquement les dépendances frontend (`streamlit`, `requests`, etc.) et lance l'application sur le port configuré. Sur Hugging Face Spaces, les protections XSRF/CORS sont désactivées dans la commande de démarrage pour permettre l'upload de fichiers depuis le navigateur.
+Le `Dockerfile.streamlit` ne contient pas TensorFlow. Il installe uniquement les dépendances frontend nécessaires à l'interface Streamlit et lance l'application sur le port configuré. Sur Hugging Face Spaces, les protections XSRF/CORS sont désactivées dans la commande de démarrage pour permettre l'upload de fichiers depuis le navigateur.
 
 ### Variables d'environnement
 

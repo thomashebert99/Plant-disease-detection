@@ -30,3 +30,15 @@ def test_preprocess_image_bytes_rejects_invalid_image() -> None:
 
     with pytest.raises(ValueError, match="image lisible"):
         preprocess_image_bytes(b"not an image")
+
+
+def test_preprocess_image_bytes_rejects_corrupted_image(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pillow decoding errors should also be mapped to a readable ValueError."""
+
+    def raise_os_error(*args: object, **kwargs: object) -> None:
+        raise OSError("corrupted stream")
+
+    monkeypatch.setattr("src.api.preprocessing.Image.open", raise_os_error)
+
+    with pytest.raises(ValueError, match="image lisible"):
+        preprocess_image_bytes(b"looks-like-image-bytes")

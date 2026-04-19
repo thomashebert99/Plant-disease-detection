@@ -13,9 +13,9 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-common.txt requirements-cpu.txt ./
+COPY requirements-api.txt requirements-api-cpu.txt ./
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir -r requirements-cpu.txt
+    && pip install --no-cache-dir -r requirements-api-cpu.txt
 
 COPY src ./src
 

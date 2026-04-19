@@ -50,7 +50,7 @@ class PredictionResult:
 def model_source() -> str:
     """Return the configured model source: local checkpoints or HF Hub."""
 
-    source = os.getenv("MODEL_SOURCE", "local").strip().lower()
+    source = _configured_model_source()
     if source not in SUPPORTED_MODEL_SOURCES:
         supported = ", ".join(sorted(SUPPORTED_MODEL_SOURCES))
         raise ModelConfigError(f"MODEL_SOURCE invalide: {source}. Valeurs: {supported}")
@@ -84,7 +84,7 @@ def get_models_info() -> dict[str, Any]:
     except ModelConfigError as exc:
         return {
             "config_available": False,
-            "source": model_source(),
+            "source": _configured_model_source(),
             "error": str(exc),
             "tasks": {},
         }
@@ -339,3 +339,9 @@ def _resolve_project_path(path_value: str) -> Path:
         return PROJECT_ROOT.joinpath(*parts[models_index:])
 
     return path
+
+
+def _configured_model_source() -> str:
+    """Return the raw configured model source without validating it."""
+
+    return os.getenv("MODEL_SOURCE", "local").strip().lower()

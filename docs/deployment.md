@@ -146,12 +146,12 @@ Le nom passé à `--start-at` doit correspondre au chemin Hugging Face indiqué 
 Chaque Space est un repo Git Hugging Face. Le principe est :
 
 1. cloner le repo du Space API ;
-2. copier le code nécessaire à l'API : `Dockerfile`, `requirements-common.txt`, `requirements-cpu.txt`, `src/`, `README.md` si souhaité ;
+2. copier le code nécessaire à l'API : `Dockerfile`, `requirements-api.txt`, `requirements-api-cpu.txt`, `src/`, `README.md` si souhaité ;
 3. commiter et pousser vers le Space API ;
 4. attendre la fin du build Hugging Face ;
 5. vérifier `/health` puis `/models/info` ;
 6. cloner le repo du Space Streamlit ;
-7. copier le code nécessaire à l'interface : `Dockerfile.streamlit`, `requirements-common.txt`, `app/`, `README.md` si souhaité ;
+7. copier le code nécessaire à l'interface : `Dockerfile.streamlit`, `requirements-streamlit.txt`, `app/`, `README.md` si souhaité ;
 8. commiter et pousser vers le Space Streamlit ;
 9. tester l'upload d'une image dans l'interface.
 

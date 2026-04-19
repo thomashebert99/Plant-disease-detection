@@ -78,6 +78,18 @@ def test_models_info_reports_missing_config(monkeypatch: pytest.MonkeyPatch, tmp
     assert "Configuration d'ensemble introuvable" in info["error"]
 
 
+def test_models_info_reports_invalid_model_source(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Model metadata should expose invalid configuration without crashing."""
+
+    monkeypatch.setenv("MODEL_SOURCE", "invalid")
+
+    info = model_loader.get_models_info()
+
+    assert info["config_available"] is False
+    assert info["source"] == "invalid"
+    assert "MODEL_SOURCE invalide" in info["error"]
+
+
 def test_predict_task_uses_soft_vote(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

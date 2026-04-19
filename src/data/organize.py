@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import random
 import shutil
 from collections import Counter, defaultdict
@@ -14,6 +13,7 @@ from typing import Any
 from loguru import logger
 
 from src.data.align_labels import build_test_ood_dataset
+from src.data.files import build_prefixed_filename, materialize_file, normalize_copy_mode
 
 IMAGE_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 RAW_SPLITS = ("train", "valid")
@@ -113,7 +113,7 @@ def build_processed_splits(
 ) -> dict[str, Any]:
     """Materialize a deterministic stratified 70/15/15 split from PlantVillage."""
 
-    copy_mode = _normalize_copy_mode(copy_mode)
+    copy_mode = normalize_copy_mode(copy_mode)
     source_dir = source_dir.resolve()
     target_dir = target_dir.resolve()
 
@@ -241,7 +241,7 @@ def _materialize_processed_image(
         / "species"
         / target_split
         / image.species
-        / _build_prefixed_filename(image.source_label, image.source_path.name)
+        / build_prefixed_filename(image.source_label, image.source_path.name)
     )
     disease_destination = (
         target_dir
@@ -250,28 +250,8 @@ def _materialize_processed_image(
         / image.disease
         / image.source_path.name
     )
-    _materialize_file(image.source_path, species_destination, copy_mode)
-    _materialize_file(image.source_path, disease_destination, copy_mode)
-
-
-def _materialize_file(source: Path, destination: Path, copy_mode: str) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.exists():
-        return
-
-    if copy_mode == "copy":
-        shutil.copy2(source, destination)
-        return
-
-    try:
-        os.link(source, destination)
-    except OSError:
-        shutil.copy2(source, destination)
-
-
-def _build_prefixed_filename(prefix: str, filename: str) -> str:
-    sanitized_prefix = prefix.replace("/", "_").replace("\\", "_").replace(" ", "_")
-    return f"{sanitized_prefix}__{filename}"
+    materialize_file(image.source_path, species_destination, copy_mode)
+    materialize_file(image.source_path, disease_destination, copy_mode)
 
 
 def _validate_plantvillage_layout(source_dir: Path) -> None:
@@ -316,13 +296,6 @@ def _discover_ignored_labels(source_dir: Path) -> set[str]:
             if class_dir.is_dir() and class_dir.name not in RAW_TO_PROJECT_LABELS:
                 ignored_labels.add(class_dir.name)
     return ignored_labels
-
-
-def _normalize_copy_mode(copy_mode: str) -> str:
-    normalized = copy_mode.lower().strip()
-    if normalized not in {"copy", "hardlink"}:
-        raise ValueError("copy_mode must be either 'copy' or 'hardlink'")
-    return normalized
 
 
 def _build_empty_processed_report(

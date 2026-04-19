@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import shutil
 from collections import Counter, defaultdict
@@ -11,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from loguru import logger
+
+from src.data.files import build_prefixed_filename, materialize_file, normalize_copy_mode
 
 IMAGE_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 DEFAULT_RAW_PLANTDOC_DIR = Path("data/raw/plantdoc")
@@ -70,7 +71,7 @@ def align_plantdoc_dataset(
 ) -> dict[str, Any]:
     """Copy aligned PlantDoc images into `data/test_ood/{species}/{class}/`."""
 
-    copy_mode = _normalize_copy_mode(copy_mode)
+    copy_mode = normalize_copy_mode(copy_mode)
     source_dir = source_dir.resolve()
     target_dir = target_dir.resolve()
 
@@ -120,9 +121,9 @@ def align_plantdoc_dataset(
             target_dir
             / species
             / disease
-            / _build_prefixed_filename(raw_label, image_path.name)
+            / build_prefixed_filename(raw_label, image_path.name)
         )
-        _materialize_file(image_path, destination, copy_mode)
+        materialize_file(image_path, destination, copy_mode)
 
         report["processed_images"] += 1
         report["species"][species][disease] += 1
@@ -159,33 +160,6 @@ def _iter_plantdoc_images(source_dir: Path) -> list[Path]:
         for path in source_dir.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
     )
-
-
-def _normalize_copy_mode(copy_mode: str) -> str:
-    normalized = copy_mode.lower().strip()
-    if normalized not in {"copy", "hardlink"}:
-        raise ValueError("copy_mode must be either 'copy' or 'hardlink'")
-    return normalized
-
-
-def _materialize_file(source: Path, destination: Path, copy_mode: str) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.exists():
-        return
-
-    if copy_mode == "copy":
-        shutil.copy2(source, destination)
-        return
-
-    try:
-        os.link(source, destination)
-    except OSError:
-        shutil.copy2(source, destination)
-
-
-def _build_prefixed_filename(prefix: str, filename: str) -> str:
-    sanitized_prefix = prefix.replace("/", "_").replace("\\", "_").replace(" ", "_")
-    return f"{sanitized_prefix}__{filename}"
 
 
 def _serialize_alignment_report(report: dict[str, Any]) -> dict[str, Any]:

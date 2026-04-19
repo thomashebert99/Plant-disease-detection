@@ -63,7 +63,6 @@ class PredictionResponse(BaseModel):
     status: PredictionStatus
     species: SpeciesResult
     disease: DiseaseResult | None = None
-    gradcam_base64: str | None = None
     action_required: str | None = None
 
 

@@ -1,0 +1,2 @@
+-r requirements-api.txt
+tensorflow==2.19.0

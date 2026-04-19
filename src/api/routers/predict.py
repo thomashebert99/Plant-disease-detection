@@ -53,7 +53,6 @@ async def predict(
                     status=PredictionStatus.uncertain_species,
                     species=species_prediction,
                     disease=None,
-                    gradcam_base64=None,
                     action_required=(
                         "Espèce détectée avec une confiance insuffisante. "
                         "Merci de confirmer l'espèce avant le diagnostic."
@@ -80,7 +79,6 @@ async def predict(
             status=PredictionStatus.ok,
             species=species_prediction,
             disease=disease_prediction,
-            gradcam_base64=None,
             action_required=None,
         )
         _log_prediction_response(
@@ -150,7 +148,6 @@ async def predict_disease(
             status=PredictionStatus.ok,
             species=species_result,
             disease=disease_result,
-            gradcam_base64=None,
             action_required=None,
         )
         _log_prediction_response(
