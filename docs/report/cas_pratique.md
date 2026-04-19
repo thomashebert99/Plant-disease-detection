@@ -317,6 +317,29 @@ La **Partie 2** couvrira la réalisation concrète du système : préparation de
 
 ## Bibliographie et sources principales
 
+- [PlantVillage — TensorFlow Datasets][1] — dataset de référence utilisé pour cadrer la classification foliaire.
+- [PlantDoc][2] — dataset d'images plus proches des conditions terrain.
+- [Uncovering bias in the PlantVillage dataset][3] — source utilisée pour discuter les biais de fond et la généralisation.
+- [Keras — Transfer learning & fine-tuning][4] — justification du transfert d'apprentissage.
+- [Keras Applications][5] — modèles pré-entraînés utilisés comme base de benchmark.
+- [Hugging Face — Uploading models][7] — publication des artefacts modèles.
+- [Hugging Face Hub — Download files][8] — téléchargement des artefacts au runtime.
+- [Hugging Face Spaces Overview][9] — hébergement des applications.
+- [Docker Spaces][10] — déploiement de l'API et de l'interface via Docker.
+- [MLflow Tracking][11] — suivi des runs, paramètres, métriques et artefacts.
+- [DagsHub Integration with MLflow][12] — serveur MLflow distant.
+- [Commission européenne — minimisation des données][13] — cadrage RGPD.
+- [AI Act — règlement UE 2024/1689][14] — cadrage réglementaire IA.
+- [CNIL — recommandations IA et RGPD][15] — bonnes pratiques de développement IA.
+- [WCAG 2.2][16] — accessibilité web.
+- [Vertex AI — image classification][17] et [Vertex AI pricing][18] — benchmark documentaire cloud.
+- [AWS Rekognition Custom Labels][19] et [AWS Rekognition pricing][20] — benchmark documentaire cloud.
+- [Azure AI Custom Vision][21] et [Azure AI Custom Vision pricing][22] — alternative managée.
+- [Roboflow Credits][23] — benchmark documentaire plateforme vision.
+- [plant.health — Kindwise][24] — API spécialisée plante.
+- [Pl@ntNet Diseases API][25] — API spécialisée plante.
+- [FastAPI Features][26] — documentation interactive de l'API.
+
 [1]: https://www.tensorflow.org/datasets/catalog/plant_village "plant_village | TensorFlow Datasets"
 [2]: https://arxiv.org/abs/1911.10317 "PlantDoc: A Dataset for Visual Plant Disease Detection"
 [3]: https://arxiv.org/abs/2206.04374 "Uncovering bias in the PlantVillage dataset"
