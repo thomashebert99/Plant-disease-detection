@@ -1,6 +1,9 @@
 site_name: Plant Disease Detection
 site_description: Documentation du projet de diagnostic foliaire par image
 site_author: Plant Disease Detection
+site_url: https://thomashebert99.github.io/Plant-disease-detection/
+repo_url: https://github.com/thomashebert99/Plant-disease-detection
+repo_name: thomashebert99/Plant-disease-detection
 
 theme:
   name: material
