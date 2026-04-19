@@ -24,20 +24,19 @@ Les notebooks écrivent les résultats dans `models/`.
 | `models/ensemble/ensemble_config_hf.json` | notebook 05 + script upload | configuration avec chemins Hugging Face Hub |
 | Repo HF `DredFury/plant-disease-detection-models` | `scripts/push_models_to_hub.py` | stockage public ou privé des modèles finaux |
 
-Le repo applicatif ne doit pas contenir les gros checkpoints. Les poids sont publiés sur Hugging Face Hub, puis téléchargés par l'API au démarrage ou au premier appel.
+Le repo applicatif ne doit pas contenir les gros checkpoints. Les poids sont publiés sur Hugging Face Hub ; en mode `hub`, l'API récupère la configuration et les checkpoints à la demande, puis met les modèles chargés en cache mémoire.
 
 ## Suivi Des Expériences
 
-Le suivi est volontairement basé sur des fichiers simples :
+Le suivi combine MLflow/DagsHub et des fichiers simples :
 
 - CSV de métriques par modèle ;
 - dossiers de runs dans `models/` ;
+- runs MLflow/DagsHub pour tracer paramètres, métriques et artefacts utiles à la comparaison des essais ;
 - notebook 05 pour la décision finale ;
 - page `Résultats` pour la synthèse.
 
-Ce choix est adapté au calendrier du projet : il reste compréhensible, versionnable et facile à expliquer dans le rapport.
-
-MLflow ou un outil équivalent pourrait être ajouté plus tard, mais il n'est pas nécessaire pour valider le pipeline actuel.
+Ce choix est adapté au calendrier du projet : il reste compréhensible, versionnable et facile à expliquer dans le rapport. MLflow/DagsHub couvre le suivi expérimental des entraînements et benchmarks ; le monitoring du service déployé reste séparé et repose sur les logs JSONL exposés par `/monitoring/summary`.
 
 ## Sélection Finale
 
@@ -148,7 +147,7 @@ Ces contraintes expliquent plusieurs choix :
 - Hugging Face Hub pour stocker uniquement les artefacts nécessaires à l'API ;
 - Spaces gratuits pour exposer l'API et l'interface ;
 - monitoring JSONL minimal plutôt qu'une stack Prometheus/Grafana ou un outil payant ;
-- MLflow utilisé pour le suivi expérimental, pas comme plateforme de monitoring production.
+- MLflow utilisé pour le suivi expérimental, pas comme plateforme de monitoring du service déployé.
 
 Un projet plus simple de machine learning tabulaire aurait demandé moins de calcul et moins de stockage. Ici, la difficulté vient du passage à un service IA complet : modèles lourds, API, application, packaging, déploiement, tests et monitorage.
 

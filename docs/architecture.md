@@ -34,7 +34,7 @@ Hugging Face Hub
 
 Hugging Face Space API
   héberge FastAPI en Docker
-  télécharge la config et les modèles depuis Hugging Face Hub
+  récupère la config et les checkpoints à la demande depuis Hugging Face Hub
 
 Hugging Face Space Streamlit
   héberge l'interface utilisateur
@@ -209,7 +209,7 @@ Il est responsable de :
 
 - lire `ensemble_config.json` ;
 - choisir entre modèles locaux et Hugging Face Hub ;
-- télécharger les fichiers depuis Hugging Face Hub si `MODEL_SOURCE=hub` ;
+- récupérer les fichiers à la demande depuis Hugging Face Hub si `MODEL_SOURCE=hub` ;
 - charger les modèles Keras en lazy loading ;
 - gérer les custom objects nécessaires à certaines architectures ;
 - faire le vote doux ;

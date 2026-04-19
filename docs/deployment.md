@@ -83,7 +83,7 @@ Le `Dockerfile` API est compatible Hugging Face Spaces :
 
 - l'API écoute sur le port `7860` par défaut ;
 - `HF_HOME=/tmp/huggingface` place le cache Hugging Face dans un dossier inscriptible ;
-- `MODEL_SOURCE=hub` indique à l'API de télécharger la config et les modèles depuis le Hub.
+- `MODEL_SOURCE=hub` indique à l'API de récupérer la configuration et les checkpoints depuis le Hub à la demande, puis de mettre les modèles chargés en cache mémoire.
 
 En local, on peut surcharger le port :
 
@@ -146,12 +146,12 @@ Le nom passé à `--start-at` doit correspondre au chemin Hugging Face indiqué 
 Chaque Space est un repo Git Hugging Face. Le principe est :
 
 1. cloner le repo du Space API ;
-2. copier le code nécessaire à l'API : `Dockerfile`, `requirements-api.txt`, `src/`, `README.md` si souhaité ;
+2. copier le code nécessaire à l'API : `Dockerfile`, `requirements-common.txt`, `requirements-cpu.txt`, `src/`, `README.md` si souhaité ;
 3. commiter et pousser vers le Space API ;
 4. attendre la fin du build Hugging Face ;
 5. vérifier `/health` puis `/models/info` ;
 6. cloner le repo du Space Streamlit ;
-7. copier `Dockerfile.streamlit`, `requirements-streamlit.txt`, `app/streamlit_app.py`, `README.md` si souhaité ;
+7. copier le code nécessaire à l'interface : `Dockerfile.streamlit`, `requirements-common.txt`, `app/`, `README.md` si souhaité ;
 8. commiter et pousser vers le Space Streamlit ;
 9. tester l'upload d'une image dans l'interface.
 

@@ -20,41 +20,7 @@ Le suivi expérimental des entraînements est assuré par **MLflow** avec le ser
 
 ### Schéma d'architecture globale
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  EXPÉRIMENTATION                                                 │
-│  Notebooks → MLflow/DagsHub (métriques, hyperparamètres, runs)  │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ ensemble_config.json + .keras
-                                ▼
-                     ┌──────────────────┐
-                     │  Hugging Face    │
-                     │  Hub (modèles)   │
-                     └────────┬─────────┘
-                              │ récupération à la demande + mise en cache (hub mode)
-┌──────────────┐   HTTP       ▼
-│  Utilisateur │ ──────► Streamlit ──────► FastAPI
-│  (navigateur)│           (UI)              │
-└──────────────┘                             │
-                                    ┌────────┴────────────┐
-                                    │    model_loader      │
-                                    │  ensemble_config.json│
-                                    │  lazy load + cache   │
-                                    └────────┬─────────────┘
-                                             │
-                              ┌──────────────┼──────────────┐
-                              ▼              ▼              ▼
-                          modèle 1       modèle 2       modèle 3
-                          Keras          Keras          Keras
-                              └──────────────┼──────────────┘
-                                       vote doux
-                                    (moy. probabilités)
-                                             │
-                                    ┌────────┴──────────┐
-                                    │  réponse JSON      │
-                                    │  + log JSONL       │
-                                    └────────────────────┘
-```
+![Architecture du service Plant Disease Detection](architecture_p2.svg)
 
 ### Flux utilisateur
 
@@ -66,7 +32,42 @@ Le suivi expérimental des entraînements est assuré par **MLflow** avec le ser
 
 ---
 
-## 2. Développement de l'API REST
+## 2. Constitution du modèle fourni
+
+Le « modèle fourni » au sens de cet énoncé correspond aux artefacts produits à l'issue des notebooks de benchmark (03 à 05).
+
+| Étape | Rôle |
+|---|---|
+| `01_data_exploration.ipynb` | Exploration des données et cadrage des classes retenues |
+| `02_preprocessing.ipynb` | Préparation des images et validation des transformations |
+| `03_benchmark_species.ipynb` | Benchmark des modèles de reconnaissance d'espèce |
+| `04_benchmark_diseases.ipynb` | Benchmark des modèles maladie par espèce |
+| `05_ensemble_selection.ipynb` | Sélection finale des modèles et génération de `ensemble_config.json` |
+
+### Ensemble de checkpoints
+
+Le notebook 05 applique la stratégie `top3_max2_family` : elle retient les 3 modèles les plus performants par tâche tout en limitant la surreprésentation d'une même famille d'architectures. La sélection finale comprend **24 checkpoints Keras** couvrant **8 tâches** :
+
+| Tâche | Rôle |
+|---|---|
+| `species` | Identification de l'espèce végétale |
+| `tomato` | Diagnostic des maladies de la tomate |
+| `apple` | Diagnostic des maladies du pommier |
+| `grape` | Diagnostic des maladies de la vigne |
+| `corn` | Diagnostic des maladies du maïs |
+| `potato` | Diagnostic des maladies de la pomme de terre |
+| `pepper` | Diagnostic des maladies du piment |
+| `strawberry` | Diagnostic des maladies de la fraise |
+
+### Configuration et publication des artefacts
+
+La sélection finale est décrite dans `ensemble_config.json`, généré par le notebook 05 et publié sur Hugging Face Hub avec les 24 checkpoints via `scripts/push_models_to_hub.py`. L'API lit ce fichier à la demande pour connaître les tâches disponibles, l'ordre des classes et les chemins des modèles correspondants. En mode `hub`, les checkpoints sont récupérés depuis Hugging Face Hub puis mis en cache après chargement.
+
+Les données d'entraînement, de validation et de test in-distribution proviennent de **PlantVillage**. **PlantDoc** est utilisé uniquement pour l'évaluation out-of-distribution et n'est jamais utilisé pour entraîner les modèles. Les performances y sont nettement plus faibles, ce qui confirme que le système constitue un prototype démontrable et non un outil de diagnostic agronomique certifié. Le détail complet des métriques est présenté dans la page *Résultats*.
+
+---
+
+## 3. Développement de l'API REST
 
 ### Principes de conception
 
@@ -165,7 +166,7 @@ FastAPI génère automatiquement une interface Swagger accessible à `/docs`. El
 
 ---
 
-## 3. Intégration de l'API dans l'application Streamlit
+## 4. Intégration de l'API dans l'application Streamlit
 
 ### Séparation frontend / backend
 
@@ -190,7 +191,7 @@ L'interface Streamlit prend en compte un premier niveau d'accessibilité : libel
 
 ---
 
-## 4. Packaging et déploiement
+## 5. Packaging et déploiement
 
 ### Architecture de déploiement
 
@@ -275,7 +276,7 @@ curl https://dredfury-plant-disease-detection-api.hf.space/models/info
 
 ---
 
-## 5. Monitoring du service IA
+## 6. Monitoring du service IA
 
 ### Principes
 
@@ -332,7 +333,7 @@ Le stockage JSONL est local au conteneur. Sur Hugging Face Spaces gratuits, il p
 
 ---
 
-## 6. Tests automatisés et validation
+## 7. Tests automatisés et validation
 
 ### Stratégie de test
 
@@ -367,7 +368,7 @@ Les tests ne rejouent pas l'évaluation complète des modèles finaux, car celle
 
 ---
 
-## 7. Chaîne CI/CD et approche MLOps
+## 8. Chaîne CI/CD et approche MLOps
 
 ### Pipeline GitHub Actions
 
@@ -415,7 +416,7 @@ La chaîne mise en place est une **CI/CD partielle** : elle automatise la valida
 
 ---
 
-## 8. Démonstration du système complet
+## 9. Démonstration du système complet
 
 ### Scénario de démonstration
 
@@ -434,7 +435,7 @@ La chaîne mise en place est une **CI/CD partielle** : elle automatise la valida
 
 ---
 
-## 9. Limites de la mise en service
+## 10. Limites de la mise en service
 
 | Limite | Description |
 |---|---|
@@ -448,9 +449,9 @@ La chaîne mise en place est une **CI/CD partielle** : elle automatise la valida
 
 ---
 
-## 10. Conclusion de la Partie 2
+## 11. Conclusion de la Partie 2
 
-La Partie 2 du projet démontre la mise en service complète d'un système de diagnostic foliaire par image.
+La Partie 2 du projet démontre la mise en service complète d'un système de diagnostic foliaire par image, s'appuyant sur un ensemble de 24 checkpoints Keras répartis sur 8 tâches et sélectionnés par la stratégie `top3_max2_family` à l'issue du benchmark.
 
 L'**API REST FastAPI** expose six endpoints documentés, gère le preprocessing des images, orchestre le vote doux entre trois modèles par tâche, applique un seuil de confiance configurable et retourne des réponses JSON structurées. Elle est conçue pour démarrer sans les modèles et signaler explicitement leur absence.
 

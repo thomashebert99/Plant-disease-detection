@@ -43,7 +43,7 @@ Image utilisateur
   -> réponse JSON + affichage utilisateur
 ```
 
-Les modèles finaux sont décrits par `models/ensemble_config.json`, généré par le notebook 05 après la fin des benchmarks. En production, cette configuration et les checkpoints sont publiés sur Hugging Face Hub, puis chargés par l'API déployée sur Hugging Face Spaces.
+Les modèles finaux sont décrits par `models/ensemble_config.json`, généré par le notebook 05 après la fin des benchmarks. En production, cette configuration et les checkpoints sont publiés sur Hugging Face Hub ; l'API les récupère à la demande et met les modèles chargés en cache mémoire.
 
 ## Résultats synthétiques
 
@@ -131,7 +131,7 @@ Endpoints principaux :
 
 L'interface Streamlit reste volontairement légère : elle envoie l'image à l'API, affiche les résultats et signale clairement si les modèles ne sont pas encore chargés. Elle affiche aussi les trois classes les plus probables pour l'espèce et la maladie, afin de mieux comprendre les hésitations du modèle. Une page `Monitoring` séparée permet de consulter une synthèse des prédictions enregistrées par l'API.
 
-Le monitoring de production reste volontairement minimal : l'API écrit un événement JSONL par prédiction, sans stocker l'image uploadée. Ce choix permet de démontrer l'observabilité du service tout en respectant les contraintes de temps, de coût et de simplicité d'un projet réalisé seul.
+Le monitoring du service déployé reste volontairement minimal : l'API écrit un événement JSONL par prédiction, sans stocker l'image uploadée. Ce choix permet de démontrer l'observabilité du service tout en respectant les contraintes de temps, de coût et de simplicité d'un projet réalisé seul.
 
 ## Déploiement
 
