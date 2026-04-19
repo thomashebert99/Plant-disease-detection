@@ -1,6 +1,6 @@
-# Résultats Et Éléments De Rapport
+# Résultats
 
-Cette page synthétise les sorties finales du notebook 05. Elle peut servir de base directe pour la partie modélisation, résultats et limites du rapport.
+Cette page synthétise les sorties finales du notebook 05 : sélection des modèles, gain du vote doux, résultats out-of-distribution et fichiers produits.
 
 ## Objectif De La Sélection
 
@@ -96,13 +96,7 @@ Interprétation :
 | `models/ensemble/ensemble_gain_summary.csv` | Gain du vote doux par tâche |
 | `models/ensemble/final_decisions.csv` | Décision finale : vote doux conservé partout |
 
-## Points À Reprendre Dans Le Rapport
-
-Formulation possible :
-
-> Les performances in-distribution sont très élevées sur PlantVillage, avec des F1 macro proches de 1.0 pour la plupart des tâches. Le vote doux apporte un gain mesurable sur certaines tâches, notamment la tomate, et reste neutre sur les tâches déjà saturées. Les résultats OOD sur PlantDoc sont plus faibles, ce qui met en évidence la difficulté du passage d'images contrôlées à des images terrain. L'application finale conserve une architecture homogène à trois modèles par tâche afin de garder un système stable, explicable et aligné avec l'objectif initial du projet.
-
-Limites à mentionner :
+## Limites
 
 - PlantVillage est un dataset propre, donc les performances in-distribution peuvent surestimer la robustesse en conditions réelles ;
 - PlantDoc ne couvre pas uniformément toutes les classes ;

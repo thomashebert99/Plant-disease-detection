@@ -31,8 +31,9 @@ https://dredfury-plant-disease-detection-api.hf.space/monitoring/summary
 |---|---|
 | Guide de démarrage | Installation locale, commandes utiles et lancement Docker |
 | Architecture | Organisation du pipeline ML, de l'API et de l'interface |
-| Résultats | Modèles retenus, gains du vote doux, limites OOD et éléments de rapport |
-| Trame de rapport | Plan de rapport, formulations réutilisables et limites à discuter |
+| Résultats | Modèles retenus, gains du vote doux et limites OOD |
 | Déploiement | Docker Compose, Hugging Face Hub et Hugging Face Spaces |
 | API | Endpoints, schémas de réponse et exemples d'appel |
 | MLOps | Suivi d'expériences, tests et automatisation |
+| Rapport de projet - P1 | Cas pratique : veille, benchmark et paramétrage |
+| Rapport de projet - P2 | Mise en situation : réalisation, résultats et déploiement |

@@ -310,9 +310,7 @@ La CI GitHub Actions exécute :
 5. build documentation ;
 6. build Docker API sur `main` ou en lancement manuel.
 
-## Grad-CAM Et Monitoring
-
-Grad-CAM est optionnel à ce stade. Le champ `gradcam_base64` existe dans la réponse API mais vaut `null` tant que l'explicabilité n'est pas intégrée.
+## Monitoring
 
 Le monitoring minimal est implémenté dans `src/monitoring/tracker.py`. À chaque appel de prédiction, l'API écrit un événement JSONL sans stocker l'image. L'endpoint `/monitoring/summary` agrège ensuite :
 

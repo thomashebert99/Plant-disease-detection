@@ -174,7 +174,6 @@ Réponse `ok` :
       {"label": "Healthy", "confidence": 0.02}
     ]
   },
-  "gradcam_base64": null,
   "action_required": null
 }
 ```
@@ -195,7 +194,6 @@ Réponse si l'espèce automatique est incertaine :
     ]
   },
   "disease": null,
-  "gradcam_base64": null,
   "action_required": "Espèce détectée avec une confiance insuffisante. Merci de confirmer l'espèce avant le diagnostic."
 }
 ```
@@ -258,7 +256,6 @@ Réponse :
       {"label": "Healthy", "confidence": 0.02}
     ]
   },
-  "gradcam_base64": null,
   "action_required": null
 }
 ```

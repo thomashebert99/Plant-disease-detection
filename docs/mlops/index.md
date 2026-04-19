@@ -164,7 +164,7 @@ Points importants :
 
 ## Limites MLOps
 
-Les principales limites à assumer dans le rapport :
+Les principales limites du dispositif actuel :
 
 - pas de réentraînement automatique ;
 - pas de monitoring production complet avec alerting ;

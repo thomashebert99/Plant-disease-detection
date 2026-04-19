@@ -94,19 +94,19 @@ docker run --rm -p 8000:8000 -e PORT=8000 plant-disease-api
 
 ## Docker Streamlit Seul
 
-Le `Dockerfile.streamlit` lance l'interface sur le port `7860`, attendu par Hugging Face Spaces.
+Le `Dockerfile.streamlit` lance l'interface Streamlit sur le port défini dans le conteneur. En local, le Docker Compose expose l'interface sur `http://localhost:8501`.
 
 Sur Hugging Face Spaces, l'upload de fichiers depuis le navigateur peut déclencher des erreurs liées aux protections CORS/XSRF. Le démarrage Streamlit désactive donc explicitement ces protections dans le conteneur :
 
 ```bash
 streamlit run app/streamlit_app.py \
-  --server.port 7860 \
+  --server.port 8501 \
   --server.address 0.0.0.0 \
   --server.enableXsrfProtection false \
   --server.enableCORS false
 ```
 
-Ce réglage concerne uniquement l'interface Streamlit. L'API FastAPI reste séparée.
+Sur Hugging Face Spaces, le port exposé doit rester cohérent entre le Dockerfile, la configuration du Space et la commande de démarrage. Ce réglage concerne uniquement l'interface Streamlit. L'API FastAPI reste séparée.
 
 ## Publication Des Modèles
 

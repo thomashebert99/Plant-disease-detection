@@ -115,7 +115,6 @@ Tant que `models/ensemble_config.json` n'existe pas, l'API et Streamlit peuvent 
 | `03_benchmark_species.ipynb` | benchmark des modèles de reconnaissance d'espèce |
 | `04_benchmark_diseases.ipynb` | benchmark des modèles maladie par espèce |
 | `05_ensemble_selection.ipynb` | sélection finale et génération de `ensemble_config.json` |
-| `06_gradcam.ipynb` | interprétabilité visuelle, optionnelle pour l'API |
 
 Le notebook 05 doit être lancé seulement après la fin complète des benchmarks du notebook 04.
 
