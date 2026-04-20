@@ -299,6 +299,8 @@ MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring
 
 `HF_TOKEN` est configuré dans les **secrets** du Space, jamais dans les variables publiques.
 
+Le Space API monte le Storage Bucket `DredFury/plant-disease-monitoring` en lecture-écriture sur `/data`. Les fichiers `predictions.jsonl` et `feedback.jsonl` restent donc disponibles après sommeil ou redémarrage du Space, sans stocker les images uploadées.
+
 ![Figure 3 - Variables et secret configurés dans le Space API Hugging Face](screenshots/p1-hf-space-api-secrets.png)
 
 *Figure 3 - Paramétrage du Space API : variables publiques pour la configuration et `HF_TOKEN` stocké comme secret privé.*

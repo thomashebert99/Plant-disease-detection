@@ -33,6 +33,27 @@ HF_TOKEN=hf_xxxxxxxxxxxxxxxxx
 
 `HF_TOKEN` doit avoir un droit de lecture sur le repo modèle si le repo est privé. Il ne doit jamais être commité dans Git.
 
+## Stockage Persistant Du Monitoring
+
+Dans le Space API, ouvrir `Settings`, puis `Storage Buckets`, et monter un bucket en lecture-écriture :
+
+| Paramètre | Valeur |
+|---|---|
+| Bucket | `DredFury/plant-disease-monitoring` |
+| Mount path | `/data` |
+| Access mode | `Read & Write` |
+
+Le bucket peut être privé si l'option est disponible. Le mode public reste acceptable pour ce prototype parce que les images utilisateur ne sont pas stockées, mais un bucket privé est préférable dès que le service sort d'une démonstration.
+
+Le montage redémarre le Space API. Après redémarrage, l'API écrit automatiquement :
+
+```text
+/data/plant-disease-detection/monitoring/predictions.jsonl
+/data/plant-disease-detection/monitoring/feedback.jsonl
+```
+
+Ces fichiers contiennent les événements de prédiction et les retours utilisateur sans image brute.
+
 ## Variables Du Space Streamlit
 
 Dans le Space Streamlit, ouvrir `Settings` puis `Variables and secrets`.
@@ -86,7 +107,7 @@ Le `Dockerfile` API est compatible Hugging Face Spaces :
 - `MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring` écrit les JSONL de prédiction et de feedback dans le même volume ;
 - `MODEL_SOURCE=hub` indique à l'API de récupérer la configuration et les checkpoints depuis le Hub à la demande, puis de mettre les modèles chargés en cache mémoire.
 
-Sur Hugging Face Spaces, le système de fichiers par défaut reste éphémère. Pour conserver le monitoring après sommeil ou redémarrage, il faut attacher un stockage persistant ou un Storage Bucket en lecture-écriture sur `/data` dans les settings du Space API.
+Sur Hugging Face Spaces, le système de fichiers par défaut reste éphémère. Pour conserver le monitoring après sommeil ou redémarrage, il faut attacher le Storage Bucket `DredFury/plant-disease-monitoring` en lecture-écriture sur `/data` dans les settings du Space API.
 
 En local, on peut surcharger le port :
 

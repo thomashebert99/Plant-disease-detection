@@ -224,6 +224,19 @@ TensorFlow n'est chargé qu'au premier appel de prédiction ; le démarrage du c
 
 Le `Dockerfile.streamlit` ne contient pas TensorFlow. Il installe uniquement les dépendances frontend nécessaires à l'interface Streamlit et lance l'application sur le port configuré. Sur Hugging Face Spaces, les protections XSRF/CORS sont désactivées dans la commande de démarrage pour permettre l'upload de fichiers depuis le navigateur.
 
+### Stockage persistant du monitoring
+
+Le Space API utilise un **Storage Bucket Hugging Face** pour éviter de perdre les événements de monitoring quand le Space s'endort ou redémarre. Le bucket `DredFury/plant-disease-monitoring` est monté en lecture-écriture sur `/data`.
+
+L'API écrit ensuite les fichiers JSONL dans :
+
+```text
+/data/plant-disease-detection/monitoring/predictions.jsonl
+/data/plant-disease-detection/monitoring/feedback.jsonl
+```
+
+Ce choix conserve le monitoring léger du projet tout en supprimant la principale limite du stockage local éphémère. Les images uploadées ne sont toujours pas conservées.
+
 ### Variables d'environnement
 
 **Space API (production) :**
@@ -387,7 +400,7 @@ MLflow n'est pas utilisé comme plateforme de monitoring de service en productio
 
 ### Limites du monitoring
 
-Le stockage JSONL est local au conteneur si aucun volume persistant n'est attaché au Space API. Le Dockerfile pointe maintenant vers `/data/plant-disease-detection/monitoring`, ce qui permet de conserver les événements après sommeil ou redémarrage dès qu'un stockage persistant ou un Storage Bucket est monté sur `/data`. Sans ce volume, les données peuvent encore être remises à zéro. La détection de drift repose sur des proxys et ne prouve pas une baisse de performance sans vérité terrain. Le réentraînement sur images utilisateur n'est pas réalisé : il nécessiterait un consentement explicite séparé, une durée de conservation définie, une suppression des métadonnées EXIF, une file d'annotation et un droit de suppression.
+Le stockage JSONL dépend du bucket `DredFury/plant-disease-monitoring`, monté en lecture-écriture sur `/data` dans le Space API. Si ce montage est retiré, les données peuvent de nouveau être remises à zéro lors d'un redémarrage du conteneur. La détection de drift repose sur des proxys et ne prouve pas une baisse de performance sans vérité terrain. Le réentraînement sur images utilisateur n'est pas réalisé : il nécessiterait un consentement explicite séparé, une durée de conservation définie, une suppression des métadonnées EXIF, une file d'annotation et un droit de suppression.
 
 ---
 
@@ -490,7 +503,7 @@ La chaîne mise en place est une **CI/CD partielle** : elle automatise la valida
 | Absence de validation métier | L'application n'a pas été évaluée par des experts agricoles. Les prédictions ne constituent pas un avis agronomique. |
 | Confiance non calibrée | Les scores de confiance reflètent les probabilités du softmax mais ne sont pas calibrés. Une confiance élevée ne garantit pas un diagnostic correct. |
 | Cold start Hugging Face | Les Spaces gratuits peuvent s'endormir après inactivité. Le premier appel peut également déclencher le lazy loading des 24 modèles, ce qui allonge la latence initiale. |
-| Monitoring local | Le stockage JSONL peut être conservé via `/data` si un volume persistant est attaché au Space API. Sans ce volume, il reste local au conteneur et éphémère ; il n'y a pas encore de plateforme de logs production. |
+| Monitoring léger | Le stockage JSONL est conservé dans le bucket `DredFury/plant-disease-monitoring` monté sur `/data`. Il reste volontairement simple et ne remplace pas une plateforme de logs production. |
 | Pas de réentraînement automatique | La chaîne CI/CD valide le code et l'image Docker, mais ne déclenche pas de réentraînement ni de mise à jour automatique des modèles en production. |
 
 ---
@@ -504,7 +517,7 @@ Les limites précédentes n'empêchent pas la mise en service du prototype, mais
 | Constituer un jeu de données terrain | Mesurer la performance sur des photos réellement prises par les utilisateurs, avec fonds naturels, éclairages variables et feuilles partiellement visibles | Nécessite une collecte longue, un accord utilisateur explicite, une politique de conservation et une annotation fiable |
 | Annotation experte agronomique | Transformer le feedback utilisateur en vérité terrain exploitable et réduire les risques d'erreurs de diagnostic | Demande l'intervention d'experts métier et un protocole de validation des corrections |
 | Calibration des scores de confiance | Rendre les seuils de confiance plus interprétables et mieux relier probabilité affichée et fiabilité réelle | Requiert un jeu de validation représentatif du terrain, pas seulement PlantVillage |
-| Monitoring persistant | Conserver l'historique des événements, des alertes, du drift et du feedback au-delà des redémarrages Hugging Face Spaces | Réalisable avec un volume/bucket persistant monté sur `/data` ; une base de données ou une plateforme de logs externe reste préférable pour un usage production |
+| Monitoring production | Centraliser l'historique, les alertes et le feedback dans une vraie plateforme de logs ou une base dédiée | Le bucket monté sur `/data` résout la persistance du prototype, mais ne fournit pas encore recherche avancée, rétention, alerting externe ni gouvernance complète |
 | Alerting externe | Envoyer des notifications en cas de dérive forte, latence P95 élevée ou taux d'erreur anormal | Demande l'intégration d'un outil externe (Slack, email, Grafana, cloud logging) et une gestion plus stricte des secrets |
 | Sécurisation de l'API | Protéger les endpoints d'inférence et de feedback contre les usages non maîtrisés | Nécessite une authentification par clé ou token, une limitation de débit et une gestion des utilisateurs |
 | Automatisation du déploiement Hugging Face | Réduire les manipulations manuelles lors de la mise à jour des Spaces | Les Spaces sont aujourd'hui mis à jour par push Git manuel ; une automatisation complète demanderait des tokens CI et un workflow de release dédié |

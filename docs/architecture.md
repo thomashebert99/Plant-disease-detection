@@ -289,6 +289,8 @@ CONFIDENCE_THRESHOLD=0.65
 MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring
 ```
 
+Le Space API monte le Storage Bucket `DredFury/plant-disease-monitoring` en lecture-écriture sur `/data`. Les fichiers JSONL de prédiction et de feedback sont donc conservés au-delà des redémarrages du Space.
+
 Production Streamlit :
 
 ```env
