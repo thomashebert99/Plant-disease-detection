@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from src.monitoring.tracker import (
+    feedback_file,
     log_feedback,
     log_prediction,
     read_feedback_events,
     read_prediction_events,
     summarize_feedback,
     summarize_predictions,
+    tracking_file,
 )
 
 
@@ -32,6 +34,18 @@ def test_log_prediction_writes_jsonl_event() -> None:
     assert len(events) == 1
     assert events[0]["endpoint"] == "/predict"
     assert events[0]["status"] == "ok"
+
+
+def test_monitoring_storage_dir_builds_default_jsonl_paths(monkeypatch, tmp_path) -> None:
+    """A shared storage directory should define both monitoring JSONL files."""
+
+    storage_dir = tmp_path / "monitoring"
+    monkeypatch.delenv("MONITORING_LOG_PATH", raising=False)
+    monkeypatch.delenv("FEEDBACK_LOG_PATH", raising=False)
+    monkeypatch.setenv("MONITORING_STORAGE_DIR", str(storage_dir))
+
+    assert tracking_file() == storage_dir / "predictions.jsonl"
+    assert feedback_file() == storage_dir / "feedback.jsonl"
 
 
 def test_summarize_predictions_aggregates_service_metrics() -> None:

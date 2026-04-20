@@ -276,7 +276,7 @@ Local :
 MODEL_SOURCE=local
 ENSEMBLE_CONFIG_PATH=models/ensemble_config.json
 CONFIDENCE_THRESHOLD=0.65
-MONITORING_LOG_PATH=logs/predictions.jsonl
+MONITORING_STORAGE_DIR=logs
 ```
 
 Production API :
@@ -286,7 +286,7 @@ MODEL_SOURCE=hub
 HF_REPO_ID=DredFury/plant-disease-detection-models
 HF_TOKEN=hf_xxxxxxxxxxxxxxxxx
 CONFIDENCE_THRESHOLD=0.65
-MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
+MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring
 ```
 
 Production Streamlit :

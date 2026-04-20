@@ -22,7 +22,7 @@ Variables :
 MODEL_SOURCE=hub
 HF_REPO_ID=DredFury/plant-disease-detection-models
 CONFIDENCE_THRESHOLD=0.65
-MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
+MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring
 ```
 
 Secret :
@@ -66,10 +66,10 @@ Dans Compose, l'API utilise :
 MODEL_SOURCE=local
 ENSEMBLE_CONFIG_PATH=/app/models/ensemble_config.json
 CONFIDENCE_THRESHOLD=0.65
-MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
+MONITORING_STORAGE_DIR=/app/logs/monitoring
 ```
 
-Le dossier local `models/` est monté dans le conteneur API en lecture seule. Cela évite de copier les checkpoints dans l'image Docker.
+Le dossier local `models/` est monté dans le conteneur API en lecture seule. Cela évite de copier les checkpoints dans l'image Docker. Le dossier `logs/` est monté en écriture pour conserver le JSONL de monitoring entre deux redémarrages locaux.
 
 Streamlit appelle l'API avec l'URL interne du réseau Docker :
 
@@ -82,8 +82,11 @@ API_URL=http://api:7860
 Le `Dockerfile` API est compatible Hugging Face Spaces :
 
 - l'API écoute sur le port `7860` par défaut ;
-- `HF_HOME=/tmp/huggingface` place le cache Hugging Face dans un dossier inscriptible ;
+- `HF_HOME=/data/.huggingface` place le cache Hugging Face dans le volume monté sur `/data` quand un stockage persistant est attaché au Space ;
+- `MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring` écrit les JSONL de prédiction et de feedback dans le même volume ;
 - `MODEL_SOURCE=hub` indique à l'API de récupérer la configuration et les checkpoints depuis le Hub à la demande, puis de mettre les modèles chargés en cache mémoire.
+
+Sur Hugging Face Spaces, le système de fichiers par défaut reste éphémère. Pour conserver le monitoring après sommeil ou redémarrage, il faut attacher un stockage persistant ou un Storage Bucket en lecture-écriture sur `/data` dans les settings du Space API.
 
 En local, on peut surcharger le port :
 
@@ -206,13 +209,13 @@ Vérifier le monitoring :
 https://dredfury-plant-disease-detection-api.hf.space/monitoring/summary
 ```
 
-Après quelques prédictions, `total_predictions` doit augmenter. Le stockage est volontairement local au conteneur et peut être remis à zéro si le Space redémarre.
+Après quelques prédictions, `total_predictions` doit augmenter. Avec un stockage persistant monté sur `/data`, les fichiers `/data/plant-disease-detection/monitoring/predictions.jsonl` et `/data/plant-disease-detection/monitoring/feedback.jsonl` sont conservés après sommeil ou redémarrage du Space API.
 
 ## Points De Vigilance
 
 - Le premier diagnostic peut être lent : les modèles sont chargés en lazy loading.
 - Hugging Face Spaces gratuits peuvent dormir après inactivité, donc le premier appel peut aussi réveiller le Space.
 - Les checkpoints sont volumineux : le repo modèle doit rester la source des poids, pas le repo applicatif.
-- Le monitoring JSONL est enrichi mais reste éphémère sur Hugging Face Spaces gratuits ; il sert à démontrer l'observabilité du service, pas à remplacer une plateforme de logs production.
+- Le monitoring JSONL devient persistant seulement si `/data` est réellement un volume/bucket persistant du Space API ; sans volume attaché, il reste local au conteneur.
 - `.env` doit rester local et ignoré par Git.
 - Si un token Hugging Face a été affiché par erreur, il faut le révoquer et en créer un nouveau.

@@ -7,13 +7,13 @@ services:
       MODEL_SOURCE: local
       ENSEMBLE_CONFIG_PATH: /app/models/ensemble_config.json
       CONFIDENCE_THRESHOLD: "0.65"
-      MONITORING_LOG_PATH: /tmp/plant-disease-detection/predictions.jsonl
-      FEEDBACK_LOG_PATH: /tmp/plant-disease-detection/feedback.jsonl
+      MONITORING_STORAGE_DIR: /app/logs/monitoring
       PORT: "7860"
     ports:
       - "8000:7860"
     volumes:
       - ./models:/app/models:ro
+      - ./logs:/app/logs
 
   streamlit:
     build:

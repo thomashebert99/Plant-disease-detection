@@ -29,7 +29,9 @@ Variables utiles :
 | `HF_REPO_ID` | `DredFury/plant-disease-detection-models` | Repo Hugging Face contenant les modèles |
 | `HF_TOKEN` | `hf_...` | Token nécessaire si le repo HF est privé |
 | `CONFIDENCE_THRESHOLD` | `0.65` | Seuil de confiance pour la détection automatique d'espèce |
-| `MONITORING_LOG_PATH` | `logs/predictions.jsonl` | Fichier JSONL de monitoring des prédictions |
+| `MONITORING_STORAGE_DIR` | `logs` | Dossier contenant les JSONL de prédiction et de feedback |
+| `MONITORING_LOG_PATH` | `logs/predictions.jsonl` | Fichier JSONL de monitoring des prédictions, optionnel si `MONITORING_STORAGE_DIR` est défini |
+| `FEEDBACK_LOG_PATH` | `logs/feedback.jsonl` | Fichier JSONL des retours utilisateur, optionnel si `MONITORING_STORAGE_DIR` est défini |
 
 En local, la valeur par défaut est `MODEL_SOURCE=local`. En production Hugging Face Spaces, utiliser `MODEL_SOURCE=hub`.
 
@@ -388,7 +390,7 @@ MODEL_SOURCE=hub
 HF_REPO_ID=DredFury/plant-disease-detection-models
 HF_TOKEN=hf_xxxxxxxxxxxxxxxxx
 CONFIDENCE_THRESHOLD=0.65
-MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
+MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring
 ```
 
 Le détail du déploiement est décrit dans la page [Déploiement](../deployment.md).

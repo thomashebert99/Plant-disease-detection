@@ -271,7 +271,9 @@ Le fichier `.env.example` documente l'ensemble des variables nécessaires.
 | `CONFIDENCE_THRESHOLD` | Seuil de confiance pour l'espèce (défaut : `0.65`) |
 | `MODEL_SOURCE` | Source de chargement : `local` ou `hub` |
 | `ENSEMBLE_CONFIG_PATH` | Chemin de la configuration locale |
-| `MONITORING_LOG_PATH` | Chemin du fichier JSONL de monitoring |
+| `MONITORING_STORAGE_DIR` | Dossier contenant les JSONL de monitoring et de feedback |
+| `MONITORING_LOG_PATH` | Chemin optionnel du fichier JSONL de monitoring si l'on veut surcharger le dossier commun |
+| `FEEDBACK_LOG_PATH` | Chemin optionnel du fichier JSONL des retours utilisateur |
 | `HF_TOKEN` | Token Hugging Face (secret, jamais commité) |
 | `HF_REPO_ID` | Dépôt Hugging Face des artefacts modèles |
 | `API_URL` | URL de l'API appelée par Streamlit |
@@ -282,7 +284,7 @@ Configuration locale type :
 MODEL_SOURCE=local
 ENSEMBLE_CONFIG_PATH=models/ensemble_config.json
 CONFIDENCE_THRESHOLD=0.65
-MONITORING_LOG_PATH=logs/predictions.jsonl
+MONITORING_STORAGE_DIR=logs
 MLFLOW_TRACKING_URI=https://dagshub.com/<user>/<repo>.mlflow
 ```
 
@@ -292,7 +294,7 @@ Configuration production (Space API) :
 MODEL_SOURCE=hub
 HF_REPO_ID=DredFury/plant-disease-detection-models
 CONFIDENCE_THRESHOLD=0.65
-MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
+MONITORING_STORAGE_DIR=/data/plant-disease-detection/monitoring
 ```
 
 `HF_TOKEN` est configuré dans les **secrets** du Space, jamais dans les variables publiques.

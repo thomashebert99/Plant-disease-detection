@@ -12,6 +12,7 @@ from typing import Any
 
 TRACKING_FILE = Path("logs/predictions.jsonl")
 FEEDBACK_FILE = Path("logs/feedback.jsonl")
+STORAGE_DIR = Path("logs")
 REFERENCE_FILE = Path(__file__).with_name("monitoring_reference.json")
 CONFIDENCE_BINS = (
     (0.0, 0.5, "0-50%"),
@@ -37,7 +38,7 @@ def tracking_file() -> Path:
     configured_path = os.getenv("MONITORING_LOG_PATH")
     if configured_path:
         return Path(configured_path)
-    return TRACKING_FILE
+    return monitoring_storage_dir() / TRACKING_FILE.name
 
 
 def feedback_file() -> Path:
@@ -46,7 +47,16 @@ def feedback_file() -> Path:
     configured_path = os.getenv("FEEDBACK_LOG_PATH")
     if configured_path:
         return Path(configured_path)
-    return FEEDBACK_FILE
+    return monitoring_storage_dir() / FEEDBACK_FILE.name
+
+
+def monitoring_storage_dir() -> Path:
+    """Return the directory used for monitoring JSONL storage."""
+
+    configured_dir = os.getenv("MONITORING_STORAGE_DIR")
+    if configured_dir:
+        return Path(configured_dir)
+    return STORAGE_DIR
 
 
 def log_prediction(payload: dict[str, Any]) -> None:
