@@ -11,21 +11,27 @@ from dotenv import load_dotenv
 
 try:
     from app.api_client import (
+        cached_get_monitoring_events,
         cached_get_monitoring_summary,
         call_predict_api,
         get_api_health,
         get_api_url,
         get_models_info,
+        get_monitoring_events,
         get_monitoring_summary,
+        submit_feedback,
     )
 except ModuleNotFoundError:
     from api_client import (
+        cached_get_monitoring_events,
         cached_get_monitoring_summary,
         call_predict_api,
         get_api_health,
         get_api_url,
         get_models_info,
+        get_monitoring_events,
         get_monitoring_summary,
+        submit_feedback,
     )
 
 try:
@@ -61,7 +67,7 @@ def main() -> None:
             progress_placeholder=progress_placeholder,
         )
 
-    render_last_result()
+    render_last_result(api_url)
 
 
 def configure_page() -> None:
@@ -344,24 +350,27 @@ def run_prediction(
     st.session_state["last_status_code"] = response.status_code
     st.session_state["last_image_bytes"] = image_bytes
     st.session_state["last_image_name"] = filename
+    st.session_state["last_feedback_sent"] = False
 
 
 def render_monitoring_page(api_url: str) -> None:
-    """Render a lightweight monitoring view for API predictions."""
+    """Render a visual monitoring dashboard for API predictions."""
 
-    st.subheader("Monitoring du service")
+    st.subheader("Monitoring du modèle et du service")
     st.write(
-        "Cette page résume les prédictions traitées par l'API. "
-        "Elle ne stocke pas les images envoyées."
+        "Cette page suit la santé de l'API, la confiance du modèle, les signaux de drift "
+        "et les retours utilisateur. Les images envoyées ne sont pas conservées."
     )
 
     if st.button("Rafraîchir", use_container_width=False):
         cached_get_monitoring_summary.clear()
+        cached_get_monitoring_events.clear()
 
     response = get_monitoring_summary(api_url)
     if response.status_code != 200:
         st.error(response.payload.get("detail", "Monitoring indisponible."))
         return
+    events_response = get_monitoring_events(api_url, limit=100)
 
     payload = response.payload
     total_predictions = int(payload.get("total_predictions") or 0)
@@ -375,16 +384,40 @@ def render_monitoring_page(api_url: str) -> None:
     first_row[2].metric("Espèces incertaines", uncertain_count)
     first_row[3].metric("Erreurs", error_count)
 
-    second_row = st.columns(3, gap="medium")
+    second_row = st.columns(4, gap="medium")
     second_row[0].metric("Latence moyenne", format_ms(payload.get("average_latency_ms")))
-    second_row[1].metric(
+    second_row[1].metric("Latence P95", format_ms(payload.get("p95_latency_ms")))
+    second_row[2].metric(
         "Confiance espèce",
         format_optional_percent(payload.get("average_species_confidence")),
     )
-    second_row[2].metric(
+    second_row[3].metric(
         "Confiance maladie",
         format_optional_percent(payload.get("average_disease_confidence")),
     )
+
+    render_alerts(payload.get("alerts", []))
+
+    st.divider()
+    render_distribution_section(payload)
+
+    st.divider()
+    render_confidence_section(payload)
+
+    st.divider()
+    render_drift_section(
+        payload.get("domain_shift", {}),
+        payload.get("model_quality_shift", {}),
+    )
+
+    st.divider()
+    render_feedback_summary(payload.get("feedback", {}))
+
+    if events_response.status_code == 200:
+        st.divider()
+        render_recent_events(events_response.payload.get("events", []))
+    else:
+        st.warning(events_response.payload.get("detail", "Événements indisponibles."))
 
     last_event_at = payload.get("last_event_at")
     if last_event_at:
@@ -396,7 +429,184 @@ def render_monitoring_page(api_url: str) -> None:
         st.json(payload)
 
 
-def render_last_result() -> None:
+def render_alerts(alerts: Any) -> None:
+    """Render active monitoring alerts."""
+
+    st.subheader("Alertes actives")
+    if not alerts:
+        st.success("Aucune alerte active sur la fenêtre observée.")
+        return
+    for alert in alerts:
+        if not isinstance(alert, dict):
+            continue
+        message = alert.get("message", "Alerte monitoring")
+        value = alert.get("value")
+        threshold = alert.get("threshold")
+        st.warning(f"{message} Valeur : {value} ; seuil : {threshold}.")
+
+
+def render_distribution_section(payload: dict[str, Any]) -> None:
+    """Render predicted class distributions."""
+
+    st.subheader("Distribution des prédictions")
+    left, right, third = st.columns(3, gap="medium")
+    with left:
+        render_bar_chart("Espèces prédites", payload.get("species_distribution", {}))
+    with right:
+        render_bar_chart("Maladies prédites", payload.get("disease_distribution", {}))
+    with third:
+        healthy_ratio = payload.get("healthy_ratio")
+        st.metric("Ratio feuilles saines", format_optional_percent(healthy_ratio))
+        st.caption("Calculé uniquement sur les diagnostics maladie disponibles.")
+
+
+def render_confidence_section(payload: dict[str, Any]) -> None:
+    """Render confidence histograms."""
+
+    st.subheader("Fiabilité des scores")
+    left, right = st.columns(2, gap="medium")
+    with left:
+        render_bar_chart("Confiance espèce", payload.get("species_confidence_histogram", {}))
+    with right:
+        render_bar_chart("Confiance maladie", payload.get("disease_confidence_histogram", {}))
+
+
+def render_drift_section(domain_shift: Any, model_quality_shift: Any) -> None:
+    """Render the domain-shift summary."""
+
+    st.subheader("Détection du drift")
+    if not isinstance(domain_shift, dict) or not domain_shift.get("reference_available"):
+        st.info("Référence de drift indisponible. Le monitoring reste limité aux métriques service.")
+        return
+
+    status = str(domain_shift.get("status", "insufficient_data"))
+    risk_level = str(domain_shift.get("risk_level", "none"))
+    closest_reference = domain_shift.get("closest_reference") or "non déterminée"
+    status_label = {
+        "in_domain": "In-domain",
+        "ood_like": "OOD connu",
+        "reference_shift": "Décalage",
+        "unknown_shift": "Inconnu",
+        "insufficient_data": "Attente",
+    }.get(status, status)
+
+    cols = st.columns(4, gap="medium")
+    cols[0].metric("État domaine", status_label)
+    cols[1].metric("Risque", risk_level)
+    cols[2].metric("Référence proche", str(closest_reference))
+    cols[3].metric("Fenêtre", int(domain_shift.get("window_size") or 0))
+    st.caption(
+        "OOD connu signifie que le flux ressemble à la référence PlantDoc : "
+        "la fiabilité est surveillée, sans conclure automatiquement à une erreur."
+    )
+
+    distances = domain_shift.get("distances", {})
+    render_bar_chart("Distance aux références", distances)
+
+    prediction_drift = domain_shift.get("prediction_drift", {})
+    if isinstance(prediction_drift, dict):
+        left, right = st.columns(2, gap="medium")
+        left.metric("Drift espèces", format_distance(prediction_drift.get("species_distance")))
+        right.metric("Drift maladies", format_distance(prediction_drift.get("disease_distance")))
+
+    signals = domain_shift.get("signals", [])
+    if signals:
+        st.write("Signaux principaux")
+        st.dataframe(signals, use_container_width=True, hide_index=True)
+    else:
+        st.caption("Aucun signal fort sur les métriques dérivées de l'image.")
+
+    if isinstance(model_quality_shift, dict):
+        st.write("Signal feedback")
+        feedback_cols = st.columns(4, gap="medium")
+        feedback_cols[0].metric(
+            "État qualité",
+            str(model_quality_shift.get("status", "n/a")),
+        )
+        feedback_cols[1].metric(
+            "Risque qualité",
+            str(model_quality_shift.get("risk_level", "none")),
+        )
+        feedback_cols[2].metric(
+            "Désaccord",
+            format_optional_percent(model_quality_shift.get("disagreement_rate")),
+        )
+        feedback_cols[3].metric(
+            "Retours requis",
+            int(model_quality_shift.get("minimum_feedback") or 0),
+        )
+        st.caption(
+            "Le feedback ne détecte pas le data drift à lui seul : il apporte une vérité "
+            "terrain utilisateur pour signaler une possible dérive de qualité."
+        )
+
+
+def render_feedback_summary(feedback: Any) -> None:
+    """Render aggregate user feedback."""
+
+    st.subheader("Retours utilisateur")
+    if not isinstance(feedback, dict):
+        st.info("Aucun retour utilisateur disponible.")
+        return
+    cols = st.columns(3, gap="medium")
+    cols[0].metric("Retours", int(feedback.get("total_feedback") or 0))
+    cols[1].metric("Désaccord", format_optional_percent(feedback.get("disagreement_rate")))
+    cols[2].metric("Dernier retour", feedback.get("last_feedback_at") or "Aucun")
+    render_bar_chart("Verdicts", feedback.get("verdict_distribution", {}))
+
+
+def render_recent_events(events: Any) -> None:
+    """Render recent prediction events and latency trend."""
+
+    st.subheader("Événements récents")
+    if not isinstance(events, list) or not events:
+        st.info("Aucun événement récent à afficher.")
+        return
+
+    latency_points = [
+        {"timestamp": event.get("timestamp", ""), "latency_ms": event.get("latency_ms")}
+        for event in events
+        if isinstance(event, dict) and isinstance(event.get("latency_ms"), int | float)
+    ]
+    if latency_points:
+        st.line_chart(latency_points, x="timestamp", y="latency_ms")
+
+    visible_events = [
+        {
+            "timestamp": event.get("timestamp"),
+            "status": event.get("status"),
+            "species": event.get("species"),
+            "disease": event.get("disease"),
+            "species_confidence": event.get("species_confidence"),
+            "disease_confidence": event.get("disease_confidence"),
+            "latency_ms": event.get("latency_ms"),
+        }
+        for event in events
+        if isinstance(event, dict)
+    ]
+    st.dataframe(visible_events, use_container_width=True, hide_index=True)
+
+
+def render_bar_chart(title: str, values: Any) -> None:
+    """Render a Streamlit bar chart from a mapping."""
+
+    st.write(title)
+    if not isinstance(values, dict) or not values:
+        st.caption("Aucune donnée.")
+        return
+    rows = [{"label": str(label), "value": value} for label, value in values.items()]
+    st.bar_chart(rows, x="label", y="value")
+
+
+def format_distance(value: Any) -> str:
+    """Format a drift distance value."""
+
+    if not isinstance(value, int | float):
+        return "n/a"
+    return f"{float(value):.2f}"
+
+
+def render_last_result(api_url: str) -> None:
     """Render the last API response, if any."""
 
     payload = st.session_state.get("last_response")
@@ -420,9 +630,11 @@ def render_last_result() -> None:
 
     if payload.get("status") == "uncertain_species":
         render_uncertain_species(payload)
+        render_feedback_form(api_url, payload)
         return
 
     render_successful_prediction(payload)
+    render_feedback_form(api_url, payload)
 
 
 def render_uncertain_species(payload: dict[str, Any]) -> None:
@@ -467,6 +679,78 @@ def render_successful_prediction(payload: dict[str, Any]) -> None:
 
     with st.expander("Détails techniques"):
         st.json(payload)
+
+
+def render_feedback_form(api_url: str, payload: dict[str, Any]) -> None:
+    """Render a compact user feedback form for iterative monitoring."""
+
+    st.divider()
+    st.subheader("Retour sur la prédiction")
+    st.caption(
+        "Le retour est enregistré pour le monitoring. L'image envoyée n'est pas conservée."
+    )
+
+    if st.session_state.get("last_feedback_sent"):
+        st.success("Retour déjà enregistré pour cette prédiction.")
+        return
+
+    species = payload.get("species", {})
+    disease = payload.get("disease") or {}
+    verdict_labels = {
+        "Correcte": "correct",
+        "Incorrecte": "incorrect",
+        "Je ne sais pas": "unsure",
+    }
+
+    with st.form("prediction_feedback_form", clear_on_submit=False):
+        verdict_label = st.radio(
+            "Cette prédiction vous semble-t-elle correcte ?",
+            options=list(verdict_labels),
+            horizontal=True,
+        )
+        corrected_species = None
+        corrected_disease = None
+        if verdict_labels[verdict_label] == "incorrect":
+            selected_species = st.selectbox(
+                "Espèce correcte",
+                options=["Non renseigné", *SPECIES_OPTIONS.values()],
+            )
+            selected_disease = st.selectbox(
+                "Maladie correcte",
+                options=["Non renseignée", *DISEASE_LABELS.values()],
+            )
+            corrected_species = (
+                label_to_species(selected_species)
+                if selected_species != "Non renseigné"
+                else None
+            )
+            corrected_disease = (
+                label_to_disease(selected_disease)
+                if selected_disease != "Non renseignée"
+                else None
+            )
+        comment = st.text_area("Commentaire optionnel", max_chars=500)
+        submitted = st.form_submit_button("Envoyer le retour")
+
+    if not submitted:
+        return
+
+    feedback_payload = {
+        "verdict": verdict_labels[verdict_label],
+        "prediction_status": payload.get("status"),
+        "predicted_species": species.get("species"),
+        "predicted_disease": disease.get("disease"),
+        "corrected_species": corrected_species,
+        "corrected_disease": corrected_disease,
+        "comment": comment.strip() or None,
+    }
+    response = submit_feedback(api_url, feedback_payload)
+    if response.status_code == 200 and response.payload.get("stored"):
+        st.session_state["last_feedback_sent"] = True
+        cached_get_monitoring_summary.clear()
+        st.success(response.payload.get("message", "Retour enregistré."))
+    else:
+        st.error(response.payload.get("detail", "Impossible d'enregistrer le retour."))
 
 
 def render_prediction_overview(
@@ -630,6 +914,13 @@ def label_to_species(label: str) -> str:
     """Return the API species key matching a French display label."""
 
     reverse_mapping = {display: key for key, display in SPECIES_OPTIONS.items()}
+    return reverse_mapping[label]
+
+
+def label_to_disease(label: str) -> str:
+    """Return the API disease key matching a French display label."""
+
+    reverse_mapping = {display: key for key, display in DISEASE_LABELS.items()}
     return reverse_mapping[label]
 
 

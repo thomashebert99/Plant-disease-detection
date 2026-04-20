@@ -85,6 +85,8 @@ TensorFlow n'est importé qu'au moment du premier chargement de modèle (import 
 | `POST` | `/predict/species` | Prédiction d'espèce seule |
 | `POST` | `/predict/disease` | Diagnostic maladie avec espèce fournie |
 | `GET` | `/monitoring/summary` | Synthèse des événements de monitoring |
+| `GET` | `/monitoring/events` | Derniers événements pour graphes et audit |
+| `POST` | `/feedback` | Retour utilisateur sans stockage d'image |
 
 ### Organisation du code API
 
@@ -98,7 +100,8 @@ src/api/
     ├── health.py        # GET /health
     ├── models.py        # GET /models/info
     ├── predict.py       # POST /predict, /predict/species, /predict/disease
-    └── monitoring.py    # GET /monitoring/summary
+    ├── monitoring.py    # GET /monitoring/summary, /monitoring/events
+    └── feedback.py      # POST /feedback
 ```
 
 ### Gestion de l'image uploadée
@@ -180,7 +183,8 @@ Streamlit ne charge aucun modèle et ne dépend pas de TensorFlow. Il envoie uni
 | Mode automatique | L'API détecte l'espèce ; Streamlit affiche le résultat ou invite à confirmer |
 | Mode manuel | L'utilisateur sélectionne l'espèce dans une liste ; envoi avec le champ `species` |
 | Affichage des résultats | Espèce prédite, maladie prédite, confiances, top 3 classes |
-| Page Monitoring | Appel à `GET /monitoring/summary` pour afficher les métriques de service |
+| Page Monitoring | Appels à `GET /monitoring/summary` et `/monitoring/events` pour afficher métriques, graphes, alertes et drift |
+| Feedback utilisateur | Formulaire de retour envoyé à `POST /feedback`, sans stockage de l'image |
 | Gestion des erreurs | Messages clairs si l'API retourne `503` (modèles absents) ou `400` (image invalide) |
 
 ### Accessibilité et messages utilisateur
@@ -280,7 +284,7 @@ curl https://dredfury-plant-disease-detection-api.hf.space/models/info
 
 ### Principes
 
-Le monitoring est volontairement minimal, adapté aux contraintes d'un projet individuel sur infrastructure gratuite. À chaque appel de prédiction, l'API écrit un événement au format JSONL dans un fichier local au conteneur. L'image uploadée par l'utilisateur n'est jamais stockée.
+Le monitoring est volontairement simple à exploiter, mais il couvre maintenant le service, le modèle et les signaux de drift. À chaque appel de prédiction, l'API écrit un événement au format JSONL dans un fichier local au conteneur. L'image uploadée par l'utilisateur n'est jamais stockée : seules des métriques numériques dérivées de l'image sont conservées.
 
 ### Champs enregistrés par événement
 
@@ -296,10 +300,16 @@ Le monitoring est volontairement minimal, adapté aux contraintes d'un projet in
 | `disease_confidence` | float | Score de confiance maladie |
 | `latency_ms` | float | Temps de réponse en millisecondes |
 | `model_source` | string | `local` ou `hub` |
+| `brightness_mean` | float | Luminosité moyenne de l'image |
+| `contrast_std` | float | Contraste approximatif |
+| `sharpness_score` | float | Netteté approximative |
+| `saturation_mean` | float | Saturation moyenne |
+| `green_ratio` | float | Part approximative de pixels verts |
+| `brown_ratio` | float | Part approximative de pixels bruns |
 
 ### Endpoint `/monitoring/summary`
 
-L'endpoint `GET /monitoring/summary` agrège les événements JSONL et retourne :
+L'endpoint `GET /monitoring/summary` agrège les événements JSONL et retourne une synthèse exploitable dans Streamlit :
 
 ```json
 {
@@ -309,27 +319,66 @@ L'endpoint `GET /monitoring/summary` agrège les événements JSONL et retourne 
   "ok": 9,
   "uncertain_species": 2,
   "errors": 1,
+  "error_rate": 0.0833,
+  "uncertain_rate": 0.1667,
+  "low_confidence_rate": 0.25,
   "average_latency_ms": 842.41,
+  "p95_latency_ms": 1320.5,
   "average_species_confidence": 0.81,
   "average_disease_confidence": 0.76,
+  "species_distribution": {"tomato": 5, "apple": 2},
+  "alerts": [],
+  "domain_shift": {
+    "status": "ood_like",
+    "risk_level": "watch",
+    "closest_reference": "plantdoc_ood"
+  },
+  "model_quality_shift": {
+    "status": "insufficient_feedback",
+    "risk_level": "none",
+    "disagreement_rate": 0.0
+  },
   "last_event_at": "2026-04-18T10:00:00+00:00"
 }
 ```
 
-La page Monitoring de Streamlit appelle cet endpoint et affiche ces métriques, ce qui permet une démonstration directe de l'observabilité du service.
+L'endpoint `GET /monitoring/events?limit=100` retourne les derniers événements pour construire les courbes de latence, les histogrammes de confiance et le tableau des prédictions récentes.
+
+### Détection du drift
+
+Le drift est détecté sans stocker les images. L'API compare les métriques récentes avec deux références :
+
+| Référence | Rôle |
+|---|---|
+| `plantvillage_in_domain` | Domaine contrôlé utilisé pour l'entraînement, la validation et le test in-distribution |
+| `plantdoc_ood` | Domaine OOD connu, plus proche d'images terrain et déjà identifié comme plus difficile |
+
+Le résultat n'est pas un simple booléen. Le dashboard distingue `in_domain`, `ood_like`, `reference_shift` et `unknown_shift`. Une image OOD connue n'est donc pas automatiquement considérée comme une erreur ; elle déclenche plutôt une surveillance renforcée, cohérente avec les résultats plus faibles observés sur PlantDoc.
+
+### Feedback utilisateur
+
+Après une prédiction, Streamlit permet à l'utilisateur d'indiquer si le résultat lui semble correct, incorrect ou incertain. En cas de désaccord, il peut indiquer l'espèce ou la maladie correcte. Le retour est envoyé à `POST /feedback` et stocké dans un fichier JSONL séparé, sans conservation de l'image.
+
+Ce feedback ne remplace pas une annotation experte, mais il donne un signal d'amélioration itérative : classes souvent contestées, taux de désaccord, besoin de nouvelles données ou de réévaluation.
+
+Il est volontairement séparé du `domain_shift`. Les métriques image et les distributions détectent un changement de domaine ; le feedback utilisateur détecte une possible dérive de qualité ou de concept. Si les deux signaux apparaissent ensemble, le diagnostic de monitoring est plus fort.
+
+### Alertes
+
+Les alertes sont calculées à partir de seuils configurables : taux d'erreur, taux d'espèce incertaine, confiance maladie moyenne, latence P95, drift inconnu et taux de désaccord utilisateur. Elles sont affichées dans la page Monitoring de Streamlit.
 
 ### Distinction MLflow / JSONL
 
 | Outil | Périmètre | Données suivies |
 |---|---|---|
 | MLflow / DagsHub | Expérimentation (notebooks) | Hyperparamètres, métriques d'entraînement, runs |
-| JSONL local | Service (API en production) | Statuts, confiances, latences des prédictions |
+| JSONL local | Service (API en production) | Statuts, confiances, latences, métriques image dérivées, drift, feedback |
 
 MLflow n'est pas utilisé comme plateforme de monitoring de service en production. Ces deux dispositifs sont complémentaires et couvrent des périmètres distincts.
 
 ### Limites du monitoring
 
-Le stockage JSONL est local au conteneur. Sur Hugging Face Spaces gratuits, il peut être remis à zéro si le Space redémarre. Ce dispositif suffit pour démontrer l'observabilité du service, mais il ne remplace pas une plateforme de logs production avec alerting et persistance garantie.
+Le stockage JSONL est local au conteneur. Sur Hugging Face Spaces gratuits, il peut être remis à zéro si le Space redémarre. La détection de drift repose sur des proxys et ne prouve pas une baisse de performance sans vérité terrain. Le réentraînement sur images utilisateur n'est pas réalisé : il nécessiterait un consentement explicite séparé, une durée de conservation définie, une suppression des métadonnées EXIF, une file d'annotation et un droit de suppression.
 
 ---
 
@@ -428,8 +477,8 @@ La chaîne mise en place est une **CI/CD partielle** : elle automatise la valida
 | 4 | Tester le mode manuel (sélectionner une espèce) | Le routage direct vers le modèle maladie fonctionne |
 | 5 | Ouvrir `/docs` sur l'API | La documentation Swagger est auto-générée et utilisable |
 | 6 | Tester `GET /health` et `GET /models/info` | L'API est en ligne, la configuration est complète, les 24 checkpoints attendus sont référencés, et le cache indique les modèles déjà chargés en mémoire |
-| 7 | Consulter `GET /monitoring/summary` | Les prédictions sont tracées ; latence et confiances sont visibles |
-| 8 | Afficher la page Monitoring dans Streamlit | L'intégration frontend/monitoring fonctionne |
+| 7 | Consulter `GET /monitoring/summary` | Les prédictions sont tracées ; latence, confiances, alertes et drift sont visibles |
+| 8 | Afficher la page Monitoring dans Streamlit | L'intégration frontend/monitoring affiche graphes, drift et feedback |
 | 9 | Ouvrir GitHub Actions | La CI passe ; tests, coverage, docs et Docker sont validés |
 | 10 | Ouvrir le repo Hugging Face Hub | Les 24 checkpoints et `ensemble_config.json` sont publiés |
 
@@ -444,7 +493,7 @@ La chaîne mise en place est une **CI/CD partielle** : elle automatise la valida
 | Absence de validation métier | L'application n'a pas été évaluée par des experts agricoles. Les prédictions ne constituent pas un avis agronomique. |
 | Confiance non calibrée | Les scores de confiance reflètent les probabilités du softmax mais ne sont pas calibrés. Une confiance élevée ne garantit pas un diagnostic correct. |
 | Cold start Hugging Face | Les Spaces gratuits peuvent s'endormir après inactivité. Le premier appel peut également déclencher le lazy loading des 24 modèles, ce qui allonge la latence initiale. |
-| Monitoring minimal | Le stockage JSONL est local au conteneur et éphémère. Il n'y a pas d'alerting, pas de persistance garantie ni de tableau de bord dédié. |
+| Monitoring local | Le stockage JSONL est local au conteneur et éphémère. Il y a des alertes et un dashboard, mais pas de persistance garantie ni de plateforme de logs production. |
 | Pas de réentraînement automatique | La chaîne CI/CD valide le code et l'image Docker, mais ne déclenche pas de réentraînement ni de mise à jour automatique des modèles en production. |
 
 ---

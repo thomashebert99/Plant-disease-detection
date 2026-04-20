@@ -96,6 +96,7 @@ async def test_predict_logs_monitoring_summary(monkeypatch) -> None:
             files={"file": ("leaf.png", make_png_bytes(), "image/png")},
         )
         monitoring_response = await client.get("/monitoring/summary")
+        events_response = await client.get("/monitoring/events?limit=10")
 
     assert predict_response.status_code == 200
     prediction_payload = predict_response.json()
@@ -117,3 +118,40 @@ async def test_predict_logs_monitoring_summary(monkeypatch) -> None:
     assert summary["errors"] == 0
     assert summary["average_species_confidence"] == 0.92
     assert summary["average_disease_confidence"] == 0.88
+    assert summary["species_distribution"] == {"tomato": 1}
+    assert summary["disease_distribution"] == {"Late_Blight": 1}
+    assert "domain_shift" in summary
+
+    assert events_response.status_code == 200
+    events = events_response.json()["events"]
+    assert len(events) == 1
+    assert events[0]["status"] == "ok"
+    assert "brightness_mean" in events[0]
+    assert "image_bytes" not in events[0]
+
+
+@pytest.mark.asyncio
+async def test_feedback_endpoint_is_visible_in_monitoring_summary() -> None:
+    """User feedback should be stored without image content and summarized."""
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        feedback_response = await client.post(
+            "/feedback",
+            json={
+                "verdict": "incorrect",
+                "prediction_status": "ok",
+                "predicted_species": "tomato",
+                "predicted_disease": "Late_Blight",
+                "corrected_species": "potato",
+                "corrected_disease": "Early_Blight",
+                "comment": "Feuille mal reconnue.",
+            },
+        )
+        monitoring_response = await client.get("/monitoring/summary")
+
+    assert feedback_response.status_code == 200
+    assert feedback_response.json()["stored"] is True
+    feedback = monitoring_response.json()["feedback"]
+    assert feedback["total_feedback"] == 1
+    assert feedback["disagreement_rate"] == 1.0
+    assert feedback["corrected_disease_distribution"] == {"Early_Blight": 1}

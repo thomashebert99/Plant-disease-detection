@@ -26,6 +26,7 @@ from src.api.schemas import (
     SpeciesResult,
     SpeciesSource,
 )
+from src.monitoring.image_quality import analyze_image_bytes
 from src.monitoring.tracker import log_prediction
 
 router = APIRouter(prefix="/predict", tags=["predict"])
@@ -41,9 +42,10 @@ async def predict(
     start_time = time.perf_counter()
     mode = SpeciesSource.manual if species is not None else SpeciesSource.auto
     species_prediction: SpeciesResult | None = None
+    image_metrics: dict[str, float | int] = {}
 
     try:
-        image_batch = await _read_image_batch(file)
+        image_batch, image_metrics = await _read_image_payload(file)
 
         if species is None:
             species_prediction = _predict_species_result(image_batch, source=SpeciesSource.auto)
@@ -63,6 +65,7 @@ async def predict(
                     mode=mode,
                     response=response,
                     start_time=start_time,
+                    image_metrics=image_metrics,
                 )
                 return response
             detected_species = species_prediction.species
@@ -86,6 +89,7 @@ async def predict(
             mode=mode,
             response=response,
             start_time=start_time,
+            image_metrics=image_metrics,
         )
         return response
     except HTTPException as exc:
@@ -95,6 +99,7 @@ async def predict(
             start_time=start_time,
             exception=exc,
             species_result=species_prediction,
+            image_metrics=image_metrics,
         )
         raise
 
@@ -104,8 +109,9 @@ async def predict_species(file: UploadFile = File(...)) -> SpeciesResult:
     """Detect only the plant species."""
 
     start_time = time.perf_counter()
+    image_metrics: dict[str, float | int] = {}
     try:
-        image_batch = await _read_image_batch(file)
+        image_batch, image_metrics = await _read_image_payload(file)
         result = _predict_species_result(image_batch, source=SpeciesSource.auto)
         _log_prediction_event(
             {
@@ -115,6 +121,7 @@ async def predict_species(file: UploadFile = File(...)) -> SpeciesResult:
                 "species": result.species,
                 "species_confidence": result.confidence,
                 "latency_ms": _elapsed_ms(start_time),
+                **image_metrics,
             }
         )
         return result
@@ -124,6 +131,7 @@ async def predict_species(file: UploadFile = File(...)) -> SpeciesResult:
             mode=SpeciesSource.auto,
             start_time=start_time,
             exception=exc,
+            image_metrics=image_metrics,
         )
         raise
 
@@ -136,13 +144,14 @@ async def predict_disease(
     """Diagnose disease for a user-provided species."""
 
     start_time = time.perf_counter()
+    image_metrics: dict[str, float | int] = {}
     species_result = SpeciesResult(
         species=species.value,
         confidence=1.0,
         source=SpeciesSource.manual,
     )
     try:
-        image_batch = await _read_image_batch(file)
+        image_batch, image_metrics = await _read_image_payload(file)
         disease_result = _predict_disease_result(species.value, image_batch)
         response = PredictionResponse(
             status=PredictionStatus.ok,
@@ -155,6 +164,7 @@ async def predict_disease(
             mode=SpeciesSource.manual,
             response=response,
             start_time=start_time,
+            image_metrics=image_metrics,
         )
         return response
     except HTTPException as exc:
@@ -164,17 +174,26 @@ async def predict_disease(
             start_time=start_time,
             exception=exc,
             species_result=species_result,
+            image_metrics=image_metrics,
         )
         raise
 
 
-async def _read_image_batch(file: UploadFile) -> object:
-    """Read and preprocess an uploaded image."""
+async def _read_image_payload(file: UploadFile) -> tuple[object, dict[str, float | int]]:
+    """Read, describe and preprocess an uploaded image."""
 
     try:
-        return preprocess_image_bytes(await file.read())
+        image_bytes = await file.read()
+        image_batch = preprocess_image_bytes(image_bytes)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        image_metrics = analyze_image_bytes(image_bytes)
+    except Exception as exc:  # pragma: no cover - metrics must not block inference.
+        logger.warning("Analyse qualite image ignoree: {}", exc)
+        image_metrics = {}
+    return image_batch, image_metrics
 
 
 def _predict_species_result(image_batch: object, *, source: SpeciesSource) -> SpeciesResult:
@@ -214,6 +233,7 @@ def _log_prediction_response(
     mode: SpeciesSource,
     response: PredictionResponse,
     start_time: float,
+    image_metrics: dict[str, float | int] | None = None,
 ) -> None:
     """Log a successful or uncertain prediction response without image data."""
 
@@ -225,6 +245,7 @@ def _log_prediction_response(
         "species_confidence": response.species.confidence,
         "species_source": response.species.source.value,
         "latency_ms": _elapsed_ms(start_time),
+        **(image_metrics or {}),
     }
     if response.disease is not None:
         payload["disease"] = response.disease.disease
@@ -240,6 +261,7 @@ def _log_prediction_error(
     start_time: float,
     exception: HTTPException,
     species_result: SpeciesResult | None = None,
+    image_metrics: dict[str, float | int] | None = None,
 ) -> None:
     """Log a prediction error in a compact, non-sensitive form."""
 
@@ -250,6 +272,7 @@ def _log_prediction_error(
         "error_code": exception.status_code,
         "error_message": str(exception.detail),
         "latency_ms": _elapsed_ms(start_time),
+        **(image_metrics or {}),
     }
     if species_result is not None:
         payload["species"] = species_result.species

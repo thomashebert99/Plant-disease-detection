@@ -72,6 +72,25 @@ def get_monitoring_summary(api_url: str) -> ApiResponse:
     return cached_get_monitoring_summary(api_url)
 
 
+def get_monitoring_events(api_url: str, *, limit: int = 100) -> ApiResponse:
+    """Call `GET /monitoring/events`."""
+
+    return cached_get_monitoring_events(api_url, limit)
+
+
+def submit_feedback(api_url: str, payload: dict[str, Any]) -> ApiResponse:
+    """Call `POST /feedback` with explicit user feedback."""
+
+    body = json.dumps(payload).encode("utf-8")
+    http_request = request.Request(
+        f"{api_url}/feedback",
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    return send_json_request(http_request, timeout=5)
+
+
 @st.cache_data(ttl=10, show_spinner=False)
 def cached_get_api_health(api_url: str) -> ApiResponse:
     """Call `GET /health` with a short cache to keep the UI responsive."""
@@ -93,6 +112,17 @@ def cached_get_monitoring_summary(api_url: str) -> ApiResponse:
     """Call `GET /monitoring/summary` with a short cache for the dashboard."""
 
     http_request = request.Request(f"{api_url}/monitoring/summary", method="GET")
+    return send_json_request(http_request, timeout=5)
+
+
+@st.cache_data(ttl=5, show_spinner=False)
+def cached_get_monitoring_events(api_url: str, limit: int) -> ApiResponse:
+    """Call `GET /monitoring/events` with a short cache for charts."""
+
+    http_request = request.Request(
+        f"{api_url}/monitoring/events?limit={limit}",
+        method="GET",
+    )
     return send_json_request(http_request, timeout=5)
 
 

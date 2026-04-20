@@ -213,6 +213,6 @@ Après quelques prédictions, `total_predictions` doit augmenter. Le stockage es
 - Le premier diagnostic peut être lent : les modèles sont chargés en lazy loading.
 - Hugging Face Spaces gratuits peuvent dormir après inactivité, donc le premier appel peut aussi réveiller le Space.
 - Les checkpoints sont volumineux : le repo modèle doit rester la source des poids, pas le repo applicatif.
-- Le monitoring JSONL est minimal et éphémère sur Hugging Face Spaces gratuits ; il sert à démontrer l'observabilité du service, pas à remplacer une plateforme de logs production.
+- Le monitoring JSONL est enrichi mais reste éphémère sur Hugging Face Spaces gratuits ; il sert à démontrer l'observabilité du service, pas à remplacer une plateforme de logs production.
 - `.env` doit rester local et ignoré par Git.
 - Si un token Hugging Face a été affiché par erreur, il faut le révoquer et en créer un nouveau.

@@ -6,7 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PORT=7860 \
     HF_HOME=/tmp/huggingface \
-    MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
+    MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl \
+    FEEDBACK_LOG_PATH=/tmp/plant-disease-detection/feedback.jsonl
 ENV PIP_DEFAULT_TIMEOUT=120
 
 RUN apt-get update \

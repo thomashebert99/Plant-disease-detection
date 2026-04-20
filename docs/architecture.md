@@ -185,6 +185,8 @@ L'API est progressive : elle démarre même si les modèles ne sont pas encore d
 GET  /health
 GET  /models/info
 GET  /monitoring/summary
+GET  /monitoring/events
+POST /feedback
 POST /predict
 POST /predict/species
 POST /predict/disease
@@ -197,6 +199,8 @@ Comportement sans modèles :
 | `/health` | retourne `200` |
 | `/models/info` | indique `config_available: false` |
 | `/monitoring/summary` | retourne la synthèse des événements déjà loggés |
+| `/monitoring/events` | retourne les derniers événements déjà loggés |
+| `/feedback` | enregistre un retour utilisateur sans image |
 | `/predict*` | retourne `503` avec un message explicite |
 
 Cela permet de développer, tester et déployer l'API avant la fin des entraînements.
@@ -244,7 +248,8 @@ Responsabilités :
 - affichage de l'espèce, de la maladie et des confiances ;
 - affichage des trois classes les plus probables pour comprendre les hésitations du modèle ;
 - fiche synthétique sur la maladie prédite quand elle est disponible ;
-- page séparée pour consulter `/monitoring/summary` ;
+- page séparée pour consulter monitoring, alertes, drift et feedback ;
+- formulaire de retour utilisateur sans stockage d'image ;
 - affichage propre des erreurs API.
 
 Cette séparation garde le frontend léger et évite de dupliquer la logique modèle. La page Monitoring est utile pour la démonstration et l'exploitation du service, mais elle reste séparée du parcours utilisateur de diagnostic.
@@ -312,15 +317,21 @@ La CI GitHub Actions exécute :
 
 ## Monitoring
 
-Le monitoring minimal est implémenté dans `src/monitoring/tracker.py`. À chaque appel de prédiction, l'API écrit un événement JSONL sans stocker l'image. L'endpoint `/monitoring/summary` agrège ensuite :
+Le monitoring est implémenté dans `src/monitoring/tracker.py`. À chaque appel de prédiction, l'API écrit un événement JSONL sans stocker l'image. Les métriques suivies couvrent :
 
-- le nombre de prédictions ;
-- le nombre de réponses `ok`, `uncertain_species` et `error` ;
-- la latence moyenne ;
-- la confiance moyenne espèce ;
-- la confiance moyenne maladie.
+- le nombre de prédictions et les taux `ok`, `uncertain_species`, `error` ;
+- les latences moyenne, minimum, maximum et P95 ;
+- les confiances moyennes et histogrammes de confiance ;
+- les distributions d'espèces et de maladies prédites ;
+- des métriques image dérivées : luminosité, contraste, netteté, saturation, ratios vert/brun ;
+- les alertes actives ;
+- les retours utilisateur enregistrés via `POST /feedback`.
 
-Ce choix couvre l'attendu de monitorage du service sans imposer une infrastructure coûteuse ou longue à maintenir pour un projet individuel.
+La détection du drift compare une fenêtre récente de production à deux références : PlantVillage in-domain et PlantDoc OOD connu. Le dashboard peut donc distinguer un flux proche du domaine d'entraînement, un flux OOD connu à surveiller, et un décalage inconnu plus critique.
+
+Le feedback utilisateur est traité comme un signal complémentaire de dérive de qualité : il ne prouve pas seul un data drift, mais il indique que les prédictions sont contestées et peut confirmer un risque déjà visible dans les métriques de domaine.
+
+Ce choix couvre l'attendu de monitorage du service et du modèle sans imposer une infrastructure coûteuse ou longue à maintenir pour un projet individuel.
 
 ## Flux Final Réalisé
 

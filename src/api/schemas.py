@@ -77,3 +77,30 @@ class ModelsInfoResponse(BaseModel):
     loaded_model_cache_size: int = 0
     tasks: dict[str, dict[str, object]] = Field(default_factory=dict)
     error: str | None = None
+
+
+class FeedbackVerdict(str, Enum):
+    """User feedback options for the last prediction."""
+
+    correct = "correct"
+    incorrect = "incorrect"
+    unsure = "unsure"
+
+
+class FeedbackRequest(BaseModel):
+    """Feedback payload stored without the uploaded image."""
+
+    verdict: FeedbackVerdict
+    prediction_status: str | None = None
+    predicted_species: str | None = None
+    predicted_disease: str | None = None
+    corrected_species: str | None = None
+    corrected_disease: str | None = None
+    comment: str | None = Field(default=None, max_length=500)
+
+
+class FeedbackResponse(BaseModel):
+    """Response returned after persisting user feedback."""
+
+    stored: bool
+    message: str

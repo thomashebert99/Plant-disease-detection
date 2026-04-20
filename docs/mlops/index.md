@@ -107,24 +107,20 @@ Le déploiement est séparé en trois ressources :
 
 Le découpage évite de mettre TensorFlow dans Streamlit et garde une séparation claire entre frontend et backend.
 
-## Monitoring Minimal
+## Monitoring du service IA
 
-Le monitoring de service est implémenté de façon volontairement légère.
+Le monitoring reste volontairement léger, mais couvre maintenant trois niveaux : santé de l'API, fiabilité du modèle et signaux de drift en vision par ordinateur.
 
-À chaque appel de prédiction, l'API écrit un événement JSONL via `src/monitoring/tracker.py`. L'image uploadée n'est jamais stockée.
+À chaque appel de prédiction, l'API écrit un événement JSONL via `src/monitoring/tracker.py`. L'image uploadée n'est jamais stockée. Seules des informations dérivées sont conservées :
 
-Champs suivis :
-
-- timestamp ;
-- endpoint ;
-- mode automatique ou manuel ;
+- timestamp, endpoint et mode automatique ou manuel ;
 - statut `ok`, `uncertain_species` ou `error` ;
 - espèce et maladie prédites quand disponibles ;
-- confiances ;
-- temps de réponse ;
-- source des modèles, locale ou Hugging Face Hub.
+- confiances espèce et maladie ;
+- latence et source des modèles ;
+- métriques image non ré-identifiantes : luminosité, contraste, netteté approximative, saturation, ratio vert/brun, taille et ratio d'aspect.
 
-L'endpoint suivant expose une synthèse démontrable :
+L'endpoint principal expose une synthèse démontrable :
 
 ```text
 GET /monitoring/summary
@@ -133,15 +129,62 @@ GET /monitoring/summary
 Il retourne notamment :
 
 - nombre total de prédictions ;
-- nombre d'erreurs ;
-- nombre de prédictions incertaines ;
-- latence moyenne ;
-- confiance moyenne espèce ;
-- confiance moyenne maladie.
+- taux `ok`, `uncertain_species`, `error` et faible confiance ;
+- latence moyenne, minimum, maximum et P95 ;
+- confiance moyenne espèce et maladie ;
+- distributions des espèces et maladies prédites ;
+- histogrammes de confiance ;
+- alertes actives ;
+- synthèse des retours utilisateur ;
+- état de drift du flux récent ;
+- signal de dérive qualité issu du taux de désaccord utilisateur.
 
-L'interface Streamlit expose aussi une page `Monitoring` qui appelle cet endpoint. Cela facilite la démonstration devant un jury, tout en gardant la supervision séparée de l'écran de diagnostic.
+Un second endpoint expose les derniers événements pour alimenter les graphes temporels :
 
-Ce choix est adapté à la certification : il montre que le modèle en service est observable sans imposer une infrastructure de monitoring coûteuse.
+```text
+GET /monitoring/events?limit=100
+```
+
+### Détection du drift sans stockage des images
+
+Le drift est détecté par comparaison entre une fenêtre récente de production et deux références :
+
+- `plantvillage_in_domain` : domaine d'entraînement/validation contrôlé ;
+- `plantdoc_ood` : domaine OOD connu, plus proche des conditions terrain.
+
+Cette double référence évite de traiter automatiquement toute image OOD comme une erreur. Le dashboard distingue :
+
+- `in_domain` : flux proche de PlantVillage ;
+- `ood_like` : flux proche du domaine OOD connu PlantDoc, donc à surveiller ;
+- `reference_shift` : flux éloigné des références mais encore explicable ;
+- `unknown_shift` : décalage fort et non couvert par les références connues.
+
+Les signaux utilisés sont des proxys : métriques image, confiances et distributions de prédictions. Ils ne remplacent pas une mesure de performance avec vérité terrain, mais ils permettent de déclencher une surveillance, une campagne d'annotation ou une analyse complémentaire.
+
+### Feedback utilisateur
+
+L'interface Streamlit propose un retour après prédiction : correcte, incorrecte ou incertaine. L'endpoint `POST /feedback` stocke ce retour dans un JSONL séparé, sans image. Ce feedback permet de suivre un taux de désaccord et d'identifier les classes à prioriser pour une amélioration future.
+
+Le feedback ne détecte pas le data drift au sens strict : il détecte plutôt une possible dérive de qualité ou de concept, car il apporte une vérité terrain utilisateur. Le dashboard l'affiche donc comme un signal complémentaire `model_quality_shift`. S'il y a à la fois un flux OOD/inconnu et beaucoup de désaccords, le risque devient beaucoup plus crédible.
+
+### Réentraînement hypothétique
+
+Le réentraînement sur images utilisateur n'est pas implémenté. Dans une version production, il nécessiterait un consentement explicite séparé, une durée de conservation définie, la suppression des métadonnées EXIF, un accès restreint, une file d'annotation et un droit de suppression. Le projet se limite donc à la détection et à la restitution des signaux utiles à l'amélioration itérative.
+
+### Workflow de monitoring
+
+```text
+Image utilisateur
+  -> prédiction API
+  -> métriques dérivées sans stockage image
+  -> JSONL prédictions
+  -> agrégation /monitoring/summary
+  -> dashboard Streamlit
+  -> alertes, drift, feedback
+  -> priorisation d'une amélioration future
+```
+
+Ce choix est adapté à la certification : il rend le modèle observable sans imposer une infrastructure coûteuse ou longue à maintenir pour un projet individuel.
 
 ## Contraintes Du Projet
 
@@ -153,7 +196,7 @@ Ces contraintes expliquent plusieurs choix :
 - sélection contrôlée de 24 checkpoints finaux plutôt qu'un stockage exhaustif de tous les modèles ;
 - Hugging Face Hub pour stocker uniquement les artefacts nécessaires à l'API ;
 - Spaces gratuits pour exposer l'API et l'interface ;
-- monitoring JSONL minimal plutôt qu'une stack Prometheus/Grafana ou un outil payant ;
+- monitoring JSONL enrichi plutôt qu'une stack Prometheus/Grafana ou un outil payant ;
 - MLflow utilisé pour le suivi expérimental, pas comme plateforme de monitoring du service déployé.
 
 Un projet plus simple de machine learning tabulaire aurait demandé moins de calcul et moins de stockage. Ici, la difficulté vient du passage à un service IA complet : modèles lourds, API, application, packaging, déploiement, tests et monitorage.

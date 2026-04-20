@@ -126,14 +126,16 @@ Endpoints principaux :
 
 - `GET /health` : état du service ;
 - `GET /models/info` : disponibilité de la configuration modèle ;
-- `GET /monitoring/summary` : synthèse des prédictions et erreurs API ;
+- `GET /monitoring/summary` : synthèse monitoring, alertes, feedback et drift ;
+- `GET /monitoring/events` : derniers événements sans image brute ;
+- `POST /feedback` : retour utilisateur sans conservation de l'image ;
 - `POST /predict` : prédiction complète ;
 - `POST /predict/species` : prédiction espèce seule ;
 - `POST /predict/disease` : prédiction maladie avec espèce fournie.
 
-L'interface Streamlit reste volontairement légère : elle envoie l'image à l'API, affiche les résultats et signale clairement si les modèles ne sont pas encore chargés. Elle affiche aussi les trois classes les plus probables pour l'espèce et la maladie, afin de mieux comprendre les hésitations du modèle. Une page `Monitoring` séparée permet de consulter une synthèse des prédictions enregistrées par l'API.
+L'interface Streamlit reste volontairement légère : elle envoie l'image à l'API, affiche les résultats et signale clairement si les modèles ne sont pas encore chargés. Elle affiche aussi les trois classes les plus probables pour l'espèce et la maladie, afin de mieux comprendre les hésitations du modèle. Une page `Monitoring` séparée affiche les métriques service, les distributions de classes, les alertes, les signaux de drift et les retours utilisateur.
 
-Le monitoring du service déployé reste volontairement minimal : l'API écrit un événement JSONL par prédiction, sans stocker l'image uploadée. Ce choix permet de démontrer l'observabilité du service tout en respectant les contraintes de temps, de coût et de simplicité d'un projet réalisé seul.
+Le monitoring du service déployé reste volontairement simple : l'API écrit des événements JSONL par prédiction et par feedback, sans stocker l'image uploadée. Les métriques image dérivées permettent de détecter un flux in-domain, OOD connu ou inconnu sans corriger automatiquement le drift.
 
 ## Déploiement
 

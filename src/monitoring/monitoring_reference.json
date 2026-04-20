@@ -1,0 +1,67 @@
+{
+  "description": "Reference ranges used to compare recent production images with a controlled PlantVillage-like domain and a known PlantDoc-like OOD domain. These values are intentionally compact and can be replaced by statistics computed offline on the validation/OOD datasets.",
+  "domains": {
+    "plantvillage_in_domain": {
+      "label": "PlantVillage in-domain",
+      "metrics": {
+        "brightness_mean": {"mean": 128.0, "std": 32.0},
+        "contrast_std": {"mean": 48.0, "std": 16.0},
+        "sharpness_score": {"mean": 520.0, "std": 260.0},
+        "saturation_mean": {"mean": 0.42, "std": 0.16},
+        "green_ratio": {"mean": 0.46, "std": 0.22},
+        "brown_ratio": {"mean": 0.18, "std": 0.14},
+        "species_confidence": {"mean": 0.9, "std": 0.09},
+        "disease_confidence": {"mean": 0.84, "std": 0.12}
+      },
+      "prediction_distribution": {
+        "species": {
+          "tomato": 0.22,
+          "apple": 0.14,
+          "grape": 0.14,
+          "corn": 0.14,
+          "potato": 0.12,
+          "pepper": 0.12,
+          "strawberry": 0.12
+        },
+        "disease": {
+          "Healthy": 0.22,
+          "Early_Blight": 0.08,
+          "Late_Blight": 0.08,
+          "Bacterial_Spot": 0.08,
+          "Black_Rot": 0.08
+        }
+      }
+    },
+    "plantdoc_ood": {
+      "label": "PlantDoc OOD known domain",
+      "metrics": {
+        "brightness_mean": {"mean": 108.0, "std": 42.0},
+        "contrast_std": {"mean": 58.0, "std": 24.0},
+        "sharpness_score": {"mean": 300.0, "std": 240.0},
+        "saturation_mean": {"mean": 0.34, "std": 0.18},
+        "green_ratio": {"mean": 0.34, "std": 0.24},
+        "brown_ratio": {"mean": 0.24, "std": 0.18},
+        "species_confidence": {"mean": 0.72, "std": 0.18},
+        "disease_confidence": {"mean": 0.62, "std": 0.2}
+      },
+      "prediction_distribution": {
+        "species": {
+          "tomato": 0.2,
+          "apple": 0.14,
+          "grape": 0.14,
+          "corn": 0.14,
+          "potato": 0.14,
+          "pepper": 0.12,
+          "strawberry": 0.12
+        },
+        "disease": {
+          "Healthy": 0.24,
+          "Early_Blight": 0.08,
+          "Late_Blight": 0.08,
+          "Bacterial_Spot": 0.08,
+          "Black_Rot": 0.08
+        }
+      }
+    }
+  }
+}

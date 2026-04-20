@@ -262,7 +262,7 @@ Réponse :
 
 ### `GET /monitoring/summary`
 
-Retourne une synthèse simple des prédictions traitées par l'API.
+Retourne une synthèse des prédictions traitées par l'API, avec alertes, feedback et signaux de drift.
 
 L'API écrit un événement JSONL par appel de prédiction, sans stocker l'image uploadée. Les informations suivies sont volontairement limitées :
 
@@ -272,7 +272,8 @@ L'API écrit un événement JSONL par appel de prédiction, sans stocker l'image
 - espèce et maladie prédites quand disponibles ;
 - confiances ;
 - temps de réponse ;
-- source des modèles, locale ou Hugging Face Hub.
+- source des modèles, locale ou Hugging Face Hub ;
+- métriques image dérivées : luminosité, contraste, netteté, saturation, ratio vert/brun.
 
 Exemple :
 
@@ -297,10 +298,54 @@ Réponse :
   "ok": 9,
   "uncertain_species": 2,
   "errors": 1,
+  "error_rate": 0.0833,
+  "uncertain_rate": 0.1667,
+  "low_confidence_rate": 0.25,
   "average_latency_ms": 842.41,
+  "p95_latency_ms": 1320.5,
   "average_species_confidence": 0.81,
   "average_disease_confidence": 0.76,
+  "species_distribution": {"tomato": 5, "apple": 2},
+  "disease_distribution": {"Late_Blight": 3, "Healthy": 2},
+  "alerts": [],
+  "domain_shift": {
+    "status": "ood_like",
+    "risk_level": "watch",
+    "closest_reference": "plantdoc_ood"
+  },
+  "model_quality_shift": {
+    "status": "insufficient_feedback",
+    "risk_level": "none",
+    "disagreement_rate": 0.0
+  },
   "last_event_at": "2026-04-18T10:00:00+00:00"
+}
+```
+
+### `GET /monitoring/events`
+
+Retourne les derniers événements de prédiction, sans image brute, pour alimenter les graphes de monitoring.
+
+```bash
+curl "http://127.0.0.1:8000/monitoring/events?limit=100"
+```
+
+### `POST /feedback`
+
+Enregistre un retour utilisateur sur la dernière prédiction, sans stocker l'image.
+
+```bash
+curl -X POST http://127.0.0.1:8000/feedback \
+  -H "Content-Type: application/json" \
+  -d '{"verdict":"incorrect","predicted_species":"tomato","predicted_disease":"Late_Blight","corrected_species":"potato","corrected_disease":"Early_Blight"}'
+```
+
+Réponse :
+
+```json
+{
+  "stored": true,
+  "message": "Retour enregistré sans conservation de l'image."
 }
 ```
 

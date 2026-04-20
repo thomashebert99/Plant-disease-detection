@@ -208,7 +208,7 @@ Les trois services effectivement configurés sont :
 
 TensorFlow/Keras Applications est le socle logiciel de modèles pré-entraînés. Il n'est pas un service cloud : il s'agit d'une bibliothèque installée localement et dans les conteneurs Docker.
 
-Le monitoring JSONL est volontairement minimal : il sert à démontrer l'observabilité du service sans mettre en place une plateforme complète de logs ou d'alerting. L'agrégation des événements est exposée par l'endpoint `/monitoring/summary`.
+Le monitoring JSONL est volontairement léger : il sert à démontrer l'observabilité du service sans mettre en place une plateforme complète de logs. L'agrégation des événements est exposée par `/monitoring/summary` et inclut alertes, feedback et signaux de drift sans stockage des images.
 
 ### Variables d'environnement
 
@@ -309,7 +309,7 @@ La **veille** a permis d'identifier les familles de modèles pertinentes, de qua
 
 Le **benchmark** distingue ce qui a été analysé documentairement de ce qui a été réellement implémenté. La stack TensorFlow/Keras + Hugging Face Hub/Spaces + MLflow/DagsHub est la seule option testée end-to-end dans ce projet.
 
-Le **paramétrage** des services retenus est complet : variables d'environnement documentées, commandes vérifiées, endpoints de contrôle disponibles et monitoring minimal opérationnel.
+Le **paramétrage** des services retenus est complet : variables d'environnement documentées, commandes vérifiées, endpoints de contrôle disponibles et monitoring opérationnel.
 
 La **Partie 2** couvrira la réalisation concrète du système : préparation des données, benchmark des architectures, sélection de l'ensemble final, développement de l'API FastAPI, déploiement sur Hugging Face, et résultats in-distribution et out-of-distribution.
 
