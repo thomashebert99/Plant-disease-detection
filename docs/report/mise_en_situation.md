@@ -1,4 +1,4 @@
-# P2 — Mise en situation professionnelle
+# Mise en situation professionnelle
 
 ## 1. Architecture globale du service IA
 

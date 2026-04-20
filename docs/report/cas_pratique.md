@@ -1,4 +1,4 @@
-# P1 — Cas Pratique
+# Cas pratique
 
 Cette partie du rapport professionnel couvre trois compétences évaluées : organiser une veille technique et réglementaire, identifier et benchmarker des services IA préexistants, puis paramétrer le service retenu.
 

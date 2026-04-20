@@ -31,8 +31,8 @@ nav:
   - API: api/index.md
   - MLOps: mlops/index.md
   - Rapport de projet:
-      - P1 - Cas pratique: report/cas_pratique.md
-      - P2 - Mise en situation: report/mise_en_situation.md
+      - Cas pratique: report/cas_pratique.md
+      - Mise en situation: report/mise_en_situation.md
 
 markdown_extensions:
   - pymdownx.highlight:         # coloration syntaxique des blocs de code
