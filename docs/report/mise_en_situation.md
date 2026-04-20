@@ -187,6 +187,10 @@ Streamlit ne charge aucun modèle et ne dépend pas de TensorFlow. Il envoie uni
 | Feedback utilisateur | Formulaire de retour envoyé à `POST /feedback`, sans stockage de l'image |
 | Gestion des erreurs | Messages clairs si l'API retourne `503` (modèles absents) ou `400` (image invalide) |
 
+![Figure 1 - Prédiction complète dans Streamlit avec résultat, top prédictions et formulaire de feedback](screenshots/p2-streamlit-prediction-feedback.png)
+
+*Figure 1 - Interface Streamlit après upload d'une image : espèce, maladie, scores de confiance, top prédictions et formulaire de retour utilisateur.*
+
 ### Accessibilité et messages utilisateur
 
 Les réponses `uncertain_species` déclenchent un message d'avertissement visible avec un bouton de confirmation d'espèce. Les erreurs API sont interceptées et reformulées en messages compréhensibles, sans exposer les détails techniques internes.
@@ -277,6 +281,10 @@ curl https://dredfury-plant-disease-detection-api.hf.space/health
 curl https://dredfury-plant-disease-detection-api.hf.space/models/info
 # → config_available: true, complete: true, 3 modèles par tâche
 ```
+
+![Figure 2 - Endpoint models/info confirmant la configuration et les tâches disponibles](screenshots/p2-api-models-info.png)
+
+*Figure 2 - Réponse de `/models/info` : configuration chargée depuis Hugging Face Hub, tâches complètes et trois modèles référencés par tâche.*
 
 ---
 
@@ -498,17 +506,36 @@ La chaîne mise en place est une **CI/CD partielle** : elle automatise la valida
 
 ---
 
-## 11. Conclusion de la Partie 2
+## 11. Perspectives d'amélioration
+
+Les limites précédentes n'empêchent pas la mise en service du prototype, mais elles cadrent les évolutions nécessaires pour passer d'un démonstrateur robuste à un service exploitable dans un contexte terrain.
+
+| Perspective | Intérêt | Difficulté actuelle |
+|---|---|---|
+| Constituer un jeu de données terrain | Mesurer la performance sur des photos réellement prises par les utilisateurs, avec fonds naturels, éclairages variables et feuilles partiellement visibles | Nécessite une collecte longue, un accord utilisateur explicite, une politique de conservation et une annotation fiable |
+| Annotation experte agronomique | Transformer le feedback utilisateur en vérité terrain exploitable et réduire les risques d'erreurs de diagnostic | Demande l'intervention d'experts métier et un protocole de validation des corrections |
+| Calibration des scores de confiance | Rendre les seuils de confiance plus interprétables et mieux relier probabilité affichée et fiabilité réelle | Requiert un jeu de validation représentatif du terrain, pas seulement PlantVillage |
+| Monitoring persistant | Conserver l'historique des événements, des alertes, du drift et du feedback au-delà des redémarrages Hugging Face Spaces | Nécessite une base de données ou une plateforme de logs externe, donc plus d'infrastructure et de coût |
+| Alerting externe | Envoyer des notifications en cas de dérive forte, latence P95 élevée ou taux d'erreur anormal | Demande l'intégration d'un outil externe (Slack, email, Grafana, cloud logging) et une gestion plus stricte des secrets |
+| Sécurisation de l'API | Protéger les endpoints d'inférence et de feedback contre les usages non maîtrisés | Nécessite une authentification par clé ou token, une limitation de débit et une gestion des utilisateurs |
+| Automatisation du déploiement Hugging Face | Réduire les manipulations manuelles lors de la mise à jour des Spaces | Les Spaces sont aujourd'hui mis à jour par push Git manuel ; une automatisation complète demanderait des tokens CI et un workflow de release dédié |
+| Réentraînement contrôlé | Mettre à jour les modèles à partir de nouvelles données validées et suivre l'amélioration dans MLflow | Coûteux en temps de calcul, dépend de données consenties et annotées, et ne doit pas être déclenché automatiquement sans validation humaine |
+
+La priorité la plus réaliste serait d'abord de rendre le monitoring persistant et de structurer la collecte de feedback, avant de relancer des entraînements. Cela permettrait d'identifier les classes, espèces ou conditions d'image réellement problématiques, au lieu de réentraîner le modèle sans diagnostic précis.
+
+---
+
+## 12. Conclusion de la Partie 2
 
 La Partie 2 du projet démontre la mise en service complète d'un système de diagnostic foliaire par image, s'appuyant sur un ensemble de 24 checkpoints Keras répartis sur 8 tâches et sélectionnés par la stratégie `top3_max2_family` à l'issue du benchmark.
 
-L'**API REST FastAPI** expose six endpoints documentés, gère le preprocessing des images, orchestre le vote doux entre trois modèles par tâche, applique un seuil de confiance configurable et retourne des réponses JSON structurées. Elle est conçue pour démarrer sans les modèles et signaler explicitement leur absence.
+L'**API REST FastAPI** expose les endpoints de santé, configuration, inférence, monitoring et feedback. Elle gère le preprocessing des images, orchestre le vote doux entre trois modèles par tâche, applique un seuil de confiance configurable et retourne des réponses JSON structurées. Elle est conçue pour démarrer sans les modèles et signaler explicitement leur absence.
 
-L'**interface Streamlit** intègre l'API sans embarquer TensorFlow, en mode automatique ou manuel, et expose une page de monitoring léger du service.
+L'**interface Streamlit** intègre l'API sans embarquer TensorFlow, en mode automatique ou manuel, et expose une page de monitoring du service ainsi qu'un formulaire de feedback utilisateur.
 
 Le **packaging Docker** sépare frontend et backend dans deux conteneurs indépendants, compatibles Hugging Face Spaces. Les artefacts ML sont versionnés sur Hugging Face Hub ; l'API récupère la configuration et les checkpoints à la demande, puis met les modèles chargés en cache mémoire.
 
-Le **monitoring JSONL** trace les statuts, confiances et latences de chaque prédiction et les expose via un endpoint dédié, ce qui rend le comportement du service observable sans infrastructure supplémentaire.
+Le **monitoring JSONL** trace les statuts, confiances, latences, métriques image dérivées, signaux de drift, alertes et feedback de chaque prédiction. Il rend le comportement du service observable sans stocker les images utilisateur et sans infrastructure supplémentaire.
 
 Les **tests automatisés** couvrent les composants critiques sans dépendre des checkpoints finaux, avec un seuil de couverture à 70 %. La **CI GitHub Actions** valide le code, la documentation et les tests à chaque push, et valide aussi la construction de l'image Docker sur `main` ou en lancement manuel.
 

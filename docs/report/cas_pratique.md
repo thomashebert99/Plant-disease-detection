@@ -75,6 +75,18 @@ Les mots-clés utilisés pour la collecte couvrent les domaines technique et ré
 
 Cinq critères ont guidé la sélection : **autorité** de la source, **actualité** du contenu, **pertinence** pour le besoin IA, **vérifiabilité** des affirmations, **utilité** pour une décision ou un paramétrage concret. Un lien ou un article qui ne permet pas de trancher une question technique ou réglementaire n'est pas retenu.
 
+### Organisation et capitalisation de la veille
+
+Le projet a été réalisé individuellement. Pour répondre à l'exigence d'organisation collective, la veille a donc été structurée comme un dispositif partageable par une équipe projet : critères de sélection explicites, sources qualifiées, synthèses décisionnelles et liens entre information collectée et choix techniques. Cette organisation permettrait à un autre membre de reprendre la veille, de vérifier les sources, ou de poursuivre la mise à jour après livraison.
+
+| Élément de veille | Support de capitalisation | Usage collectif possible |
+|---|---|---|
+| Sources techniques et réglementaires | Bibliographie commentée du rapport | Vérification et mise à jour des références |
+| Critères de sélection | Tableau de qualification des sources | Arbitrage partagé des sources fiables |
+| Synthèses technique et réglementaire | Tableaux de décision | Discussion des choix d'architecture |
+| Benchmark des solutions | Grille comparative | Justification d'une recommandation projet |
+| Décisions issues de la veille | Rapport et documentation projet | Transmission à une équipe de maintenance |
+
 ### Sources qualifiées
 
 | Source | Type | Usage dans le rapport |
@@ -103,6 +115,10 @@ Le transfer learning est adapté au projet : il permet d'exploiter des représen
 
 PlantVillage fournit la base d'entraînement principale, mais ses images relativement contrôlées ne représentent pas les conditions terrain. PlantDoc est utilisé comme jeu de test out-of-distribution pour mesurer l'écart de performance réel.
 
+![Figure 1 - Runs MLflow/DagsHub utilisés pour comparer plusieurs architectures de classification](screenshots/p1-mlflow-benchmark-runs.png)
+
+*Figure 1 - Runs MLflow/DagsHub utilisés pour comparer les architectures, les métriques in-distribution et les résultats out-of-distribution.*
+
 ### Synthèse réglementaire et éthique
 
 | Point | Impact concret sur le projet | Preuve associée |
@@ -119,6 +135,19 @@ PlantVillage fournit la base d'entraînement principale, mais ses images relativ
 Cette approche s'appuie sur les principes de minimisation du RGPD et les recommandations de la CNIL sur les systèmes d'IA ([Commission européenne][13], [CNIL][15]). L'accessibilité de l'interface est encadrée par les WCAG 2.2 ([WCAG 2.2][16]).
 
 Sur le règlement européen sur l'IA ([EUR-Lex 2024/1689][14]) : une application de classification d'images de feuilles à visée d'aide au diagnostic agricole, non médicale, non biométrique et sans rôle de composant de sécurité d'un produit réglementé, ne semble pas relever a priori d'une catégorie à haut risque standard. Cette qualification dépend toutefois du contexte exact d'usage et ne constitue pas une analyse juridique.
+
+### Décisions issues de la veille
+
+La veille n'a pas seulement servi à documenter le contexte : elle a directement orienté plusieurs décisions techniques, réglementaires et produit.
+
+| Information issue de la veille | Décision projet |
+|---|---|
+| PlantVillage est un dataset contrôlé qui peut surestimer les performances terrain | Ajout d'une évaluation out-of-distribution avec PlantDoc |
+| Les modèles de classification produisent un score de confiance non calibré par défaut | Affichage du score comme indicateur, sans le présenter comme une probabilité certaine |
+| Les images et métadonnées peuvent devenir sensibles selon le contexte d'usage | Absence de stockage des images brutes dans les logs de monitoring |
+| Les services AutoML réduisent l'effort d'intégration mais limitent le contrôle sur les architectures et les artefacts | Choix d'une stack custom TensorFlow/Keras, Hugging Face Hub/Spaces et MLflow/DagsHub |
+| Les plateformes cloud nécessitent une gestion stricte des identifiants d'accès | Utilisation de variables d'environnement et de secrets Hugging Face, sans token commité |
+| Les interfaces d'aide à la décision doivent rester compréhensibles pour un public non expert | Messages de prudence, résultats lisibles et erreurs explicites dans l'interface |
 
 ---
 
@@ -156,6 +185,22 @@ Le benchmark ne compare pas uniquement des produits équivalents, mais les optio
 | plant.health / crop.health | API spécialisée | Benchmark documentaire | Faible | À la requête | Très simple | Comparaison métier |
 | Pl@ntNet diseases | API spécialisée | Benchmark documentaire | Faible | Quota / crédits | Simple | Comparaison spécialisée |
 
+### Matrice de décision
+
+Pour objectiver la recommandation, les options ont aussi été comparées sur cinq critères notés de 1 à 5 : adéquation au besoin, contrôle sur le modèle et les artefacts, coût, facilité d'intégration et reproductibilité. La note n'a pas pour objectif de produire une mesure absolue ; elle sert à rendre l'arbitrage explicite.
+
+| Solution | Besoin métier | Contrôle | Coût | Intégration | Reproductibilité | Total /25 |
+|---|---:|---:|---:|---:|---:|---:|
+| TensorFlow/Keras + HF Hub/Spaces + MLflow/DagsHub | 5 | 5 | 4 | 3 | 5 | **22** |
+| Azure AI Custom Vision | 4 | 3 | 3 | 4 | 3 | 17 |
+| Vertex AI AutoML Vision | 4 | 3 | 2 | 4 | 3 | 16 |
+| AWS Rekognition Custom Labels | 4 | 3 | 2 | 3 | 3 | 15 |
+| Roboflow | 4 | 3 | 3 | 4 | 3 | 17 |
+| plant.health / crop.health | 3 | 2 | 3 | 5 | 2 | 15 |
+| Pl@ntNet diseases | 3 | 2 | 4 | 5 | 2 | 16 |
+
+La stack retenue obtient le meilleur score car elle répond au besoin métier tout en conservant le contrôle sur les modèles, les métriques, les artefacts et la reproductibilité des expérimentations. Les solutions managées restent pertinentes comme alternatives, mais elles déplacent une partie du contrôle vers le fournisseur.
+
 ### Réalisme d'un test complet
 
 | Solution | Test complet réaliste ? | Justification |
@@ -175,6 +220,10 @@ Les solutions Roboflow, plant.health et Pl@ntNet ont été analysées à partir 
 Le service IA opérationnel retenu repose sur une combinaison de services préexistants : **Hugging Face Hub** pour l'hébergement et le versioning des artefacts modèles ([Hugging Face — Uploading models][7]), **Hugging Face Spaces** pour l'exposition du système d'inférence ([Spaces Overview][9]), et **MLflow/DagsHub** pour le suivi distant des expérimentations ([MLflow Tracking][11], [DagsHub Integration][12]). Les modèles exploités proviennent de TensorFlow/Keras Applications ([Keras Applications][5]), puis sont adaptés au cas d'usage par fine-tuning.
 
 TensorFlow/Keras Applications constitue le **socle logiciel** de modèles pré-entraînés ; les services effectivement paramétrés sont Hugging Face Hub, Hugging Face Spaces et MLflow/DagsHub.
+
+![Figure 2 - Dépôt Hugging Face Hub contenant la configuration et le dossier des artefacts modèles](screenshots/p1-hf-hub-model-repository.png)
+
+*Figure 2 - Dépôt Hugging Face Hub utilisé pour versionner `ensemble_config.json` et les artefacts modèles.*
 
 ### Alternative réaliste
 
@@ -248,6 +297,10 @@ MONITORING_LOG_PATH=/tmp/plant-disease-detection/predictions.jsonl
 
 `HF_TOKEN` est configuré dans les **secrets** du Space, jamais dans les variables publiques.
 
+![Figure 3 - Variables et secret configurés dans le Space API Hugging Face](screenshots/p1-hf-space-api-secrets.png)
+
+*Figure 3 - Paramétrage du Space API : variables publiques pour la configuration et `HF_TOKEN` stocké comme secret privé.*
+
 Configuration production (Space Streamlit) :
 
 ```env
@@ -288,6 +341,10 @@ FastAPI fournit automatiquement une documentation interactive, accessible via `/
 | Interface disponible | Upload et résultat sur Streamlit |
 | Tracking actif | Run visible dans MLflow/DagsHub |
 | Monitoring actif | Synthèse sur `/monitoring/summary` ou extrait JSONL anonymisé |
+
+![Figure 4 - Documentation Swagger générée par FastAPI pour les endpoints du service](screenshots/p1-fastapi-swagger.png)
+
+*Figure 4 - Documentation interactive FastAPI exposant les endpoints de santé, modèle, prédiction, monitoring et feedback.*
 
 ### Risques d'intégration
 
