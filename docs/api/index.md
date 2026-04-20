@@ -32,6 +32,7 @@ Variables utiles :
 | `MONITORING_STORAGE_DIR` | `logs` | Dossier contenant les JSONL de prédiction et de feedback |
 | `MONITORING_LOG_PATH` | `logs/predictions.jsonl` | Fichier JSONL de monitoring des prédictions, optionnel si `MONITORING_STORAGE_DIR` est défini |
 | `FEEDBACK_LOG_PATH` | `logs/feedback.jsonl` | Fichier JSONL des retours utilisateur, optionnel si `MONITORING_STORAGE_DIR` est défini |
+| `MONITORING_HIGH_CONFIDENCE_THRESHOLD` | `0.90` | Seuil utilisé pour repérer une prédiction contestée malgré une forte confiance |
 
 En local, la valeur par défaut est `MODEL_SOURCE=local`. En production Hugging Face Spaces, utiliser `MODEL_SOURCE=hub`.
 
@@ -320,6 +321,13 @@ Réponse :
     "risk_level": "none",
     "disagreement_rate": 0.0
   },
+  "feedback": {
+    "total_feedback": 4,
+    "disagreement_rate": 0.25,
+    "high_confidence_threshold": 0.9,
+    "high_confidence_disagreement_count": 1,
+    "high_confidence_disagreement_rate": 0.25
+  },
   "last_event_at": "2026-04-18T10:00:00+00:00"
 }
 ```
@@ -339,8 +347,10 @@ Enregistre un retour utilisateur sur la dernière prédiction, sans stocker l'im
 ```bash
 curl -X POST http://127.0.0.1:8000/feedback \
   -H "Content-Type: application/json" \
-  -d '{"verdict":"incorrect","predicted_species":"tomato","predicted_disease":"Late_Blight","corrected_species":"potato","corrected_disease":"Early_Blight"}'
+  -d '{"verdict":"incorrect","predicted_species":"tomato","predicted_disease":"Late_Blight","predicted_species_confidence":0.96,"predicted_disease_confidence":0.94,"corrected_species":"potato","corrected_disease":"Early_Blight"}'
 ```
+
+Les confiances de la prédiction sont enregistrées avec le feedback pour détecter les cas les plus critiques : une prédiction contestée par l'utilisateur alors que le modèle était très confiant. Cette métrique apparaît dans `high_confidence_disagreement_count` et signale surtout un risque de calibration ou de confusion entre classes proches.
 
 Réponse :
 

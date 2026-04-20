@@ -162,11 +162,26 @@ def summarize_feedback() -> dict[str, Any]:
     verdict_counts = _counter_mapping(events, "verdict")
     incorrect_count = verdict_counts.get("incorrect", 0)
     total = len(events)
+    high_confidence_threshold = _env_float("MONITORING_HIGH_CONFIDENCE_THRESHOLD", 0.9)
+    high_confidence_disagreement_count = _high_confidence_disagreement_count(
+        events,
+        threshold=high_confidence_threshold,
+    )
 
     return {
         "total_feedback": total,
         "verdict_distribution": verdict_counts,
         "disagreement_rate": _rate(incorrect_count, total),
+        "high_confidence_threshold": high_confidence_threshold,
+        "high_confidence_disagreement_count": high_confidence_disagreement_count,
+        "high_confidence_disagreement_rate": _rate(
+            high_confidence_disagreement_count,
+            total,
+        ),
+        "high_confidence_disagreement_share": _rate(
+            high_confidence_disagreement_count,
+            incorrect_count,
+        ),
         "corrected_species_distribution": _counter_mapping(events, "corrected_species"),
         "corrected_disease_distribution": _counter_mapping(events, "corrected_disease"),
         "disputed_species_distribution": _counter_mapping(events, "predicted_species"),
@@ -353,6 +368,17 @@ def build_alerts(summary: dict[str, Any]) -> list[dict[str, Any]]:
                 "threshold": model_quality_shift.get("disagreement_threshold"),
             }
         )
+    feedback = summary.get("feedback")
+    if isinstance(feedback, dict) and int(feedback.get("high_confidence_disagreement_count") or 0):
+        alerts.append(
+            {
+                "level": "warning",
+                "metric": "high_confidence_disagreement",
+                "message": "Des prédictions à forte confiance ont été contestées par l'utilisateur.",
+                "value": feedback.get("high_confidence_disagreement_count"),
+                "threshold": feedback.get("high_confidence_threshold"),
+            }
+        )
     return alerts
 
 
@@ -451,6 +477,54 @@ def _low_confidence_count(events: list[dict[str, Any]], *, threshold: float) -> 
         if confidences and min(float(value) for value in confidences) < threshold:
             count += 1
     return count
+
+
+def _high_confidence_disagreement_count(
+    events: list[dict[str, Any]],
+    *,
+    threshold: float,
+) -> int:
+    """Count user disagreements where the returned prediction was highly confident."""
+
+    count = 0
+    for event in events:
+        if event.get("verdict") != "incorrect":
+            continue
+        confidences = _disputed_confidences(event)
+        if confidences and max(confidences) >= threshold:
+            count += 1
+    return count
+
+
+def _disputed_confidences(event: dict[str, Any]) -> list[float]:
+    """Return confidence values matching the corrected fields when available."""
+
+    values: list[float] = []
+    predicted_species = event.get("predicted_species")
+    corrected_species = event.get("corrected_species")
+    predicted_disease = event.get("predicted_disease")
+    corrected_disease = event.get("corrected_disease")
+
+    if corrected_species and corrected_species != predicted_species:
+        value = event.get("predicted_species_confidence")
+        if isinstance(value, int | float):
+            values.append(float(value))
+    if corrected_disease and corrected_disease != predicted_disease:
+        value = event.get("predicted_disease_confidence")
+        if isinstance(value, int | float):
+            values.append(float(value))
+
+    if values:
+        return values
+
+    return [
+        float(value)
+        for value in (
+            event.get("predicted_species_confidence"),
+            event.get("predicted_disease_confidence"),
+        )
+        if isinstance(value, int | float)
+    ]
 
 
 def _confidence_histogram(values: list[float]) -> dict[str, int]:

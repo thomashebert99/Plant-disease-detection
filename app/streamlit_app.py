@@ -186,6 +186,99 @@ def configure_page() -> None:
             color: #16735f;
             font-weight: 700;
         }
+        .monitoring-card {
+            border: 1px solid #d7dee8;
+            border-radius: 8px;
+            padding: 0.95rem 1rem;
+            background: #ffffff;
+            min-height: 136px;
+        }
+        .monitoring-card.good {
+            border-left: 5px solid #16735f;
+        }
+        .monitoring-card.watch {
+            border-left: 5px solid #b7791f;
+        }
+        .monitoring-card.critical {
+            border-left: 5px solid #b42318;
+        }
+        .monitoring-card.neutral {
+            border-left: 5px solid #2f6db3;
+        }
+        .monitoring-label {
+            color: #5b6678;
+            font-size: 0.82rem;
+            font-weight: 650;
+            margin-bottom: 0.35rem;
+        }
+        .monitoring-value {
+            color: #18212f;
+            font-size: 1.4rem;
+            font-weight: 750;
+            line-height: 1.18;
+            overflow-wrap: anywhere;
+        }
+        .monitoring-help {
+            color: #64748b;
+            font-size: 0.84rem;
+            line-height: 1.35;
+            margin-top: 0.55rem;
+        }
+        .monitoring-note {
+            border: 1px solid #d7dee8;
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            background: #f8fafc;
+            color: #344054;
+            line-height: 1.45;
+            margin: 0.5rem 0 1rem;
+        }
+        .chart-panel {
+            border: 1px solid #d7dee8;
+            border-radius: 8px;
+            padding: 0.95rem 1rem;
+            background: #ffffff;
+        }
+        .chart-title {
+            color: #18212f;
+            font-weight: 750;
+            margin-bottom: 0.85rem;
+        }
+        .bar-row {
+            display: grid;
+            grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr) 3.5rem;
+            gap: 0.75rem;
+            align-items: center;
+            margin: 0.58rem 0;
+        }
+        .bar-label {
+            color: #344054;
+            font-size: 0.9rem;
+            overflow-wrap: anywhere;
+        }
+        .bar-track {
+            height: 0.72rem;
+            border-radius: 6px;
+            background: #e7edf4;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: #16735f;
+        }
+        .bar-value {
+            color: #18212f;
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-align: right;
+        }
+        .chart-hint {
+            color: #64748b;
+            font-size: 0.8rem;
+            min-height: 1rem;
+            margin-top: 0.55rem;
+        }
         @media (prefers-color-scheme: dark) {
             .diagnosis-badge {
                 background: #1a2332;
@@ -204,6 +297,28 @@ def configure_page() -> None:
             .ranked-label { color: #e2eaf4; }
             .ranked-confidence { color: #4dba99; }
             .image-caption { color: #9ca3af; }
+            .monitoring-card {
+                background: #111827;
+                border-color: #2d4060;
+            }
+            .monitoring-label,
+            .monitoring-help { color: #9ca3af; }
+            .monitoring-value { color: #e2eaf4; }
+            .monitoring-note {
+                background: #111827;
+                border-color: #2d4060;
+                color: #d5dde8;
+            }
+            .chart-panel {
+                background: #111827;
+                border-color: #2d4060;
+            }
+            .chart-title,
+            .bar-value { color: #e2eaf4; }
+            .bar-label,
+            .chart-hint { color: #9ca3af; }
+            .bar-track { background: #2d4060; }
+            .bar-fill { background: #4dba99; }
         }
         @media (max-width: 900px) {
             .main .block-container {
@@ -314,7 +429,7 @@ def render_input_panel() -> tuple[Any | None, str | None, bool]:
             "Analyser l'image",
             type="primary",
             disabled=uploaded_file is None,
-            use_container_width=True,
+            width="stretch",
         )
 
     return uploaded_file, selected_species, analyze_clicked
@@ -356,13 +471,20 @@ def run_prediction(
 def render_monitoring_page(api_url: str) -> None:
     """Render a visual monitoring dashboard for API predictions."""
 
-    st.subheader("Monitoring du modèle et du service")
-    st.write(
-        "Cette page suit la santé de l'API, la confiance du modèle, les signaux de drift "
-        "et les retours utilisateur. Les images envoyées ne sont pas conservées."
+    st.subheader("Monitoring du service IA")
+    st.markdown(
+        """
+        <div class="monitoring-note">
+            Lecture rapide : le dashboard suit la disponibilité de l'API, la confiance du
+            modèle, les signaux de drift et les retours utilisateur. Les images ne sont pas
+            stockées ; seuls des événements JSONL et des métriques dérivées sont conservés
+            dans le bucket Hugging Face monté sur /data.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    if st.button("Rafraîchir", use_container_width=False):
+    if st.button("Rafraîchir", width="content"):
         cached_get_monitoring_summary.clear()
         cached_get_monitoring_events.clear()
 
@@ -373,51 +495,27 @@ def render_monitoring_page(api_url: str) -> None:
     events_response = get_monitoring_events(api_url, limit=100)
 
     payload = response.payload
-    total_predictions = int(payload.get("total_predictions") or 0)
-    ok_count = int(payload.get("ok") or 0)
-    uncertain_count = int(payload.get("uncertain_species") or 0)
-    error_count = int(payload.get("errors") or 0)
-
-    first_row = st.columns(4, gap="medium")
-    first_row[0].metric("Prédictions", total_predictions)
-    first_row[1].metric("Réponses OK", ok_count)
-    first_row[2].metric("Espèces incertaines", uncertain_count)
-    first_row[3].metric("Erreurs", error_count)
-
-    second_row = st.columns(4, gap="medium")
-    second_row[0].metric("Latence moyenne", format_ms(payload.get("average_latency_ms")))
-    second_row[1].metric("Latence P95", format_ms(payload.get("p95_latency_ms")))
-    second_row[2].metric(
-        "Confiance espèce",
-        format_optional_percent(payload.get("average_species_confidence")),
-    )
-    second_row[3].metric(
-        "Confiance maladie",
-        format_optional_percent(payload.get("average_disease_confidence")),
-    )
+    render_monitoring_overview(payload)
 
     render_alerts(payload.get("alerts", []))
 
-    st.divider()
-    render_distribution_section(payload)
-
-    st.divider()
-    render_confidence_section(payload)
-
-    st.divider()
-    render_drift_section(
-        payload.get("domain_shift", {}),
-        payload.get("model_quality_shift", {}),
+    overview_tab, drift_tab, events_tab = st.tabs(
+        ["Flux observé", "Drift et feedback", "Journal technique"]
     )
-
-    st.divider()
-    render_feedback_summary(payload.get("feedback", {}))
-
-    if events_response.status_code == 200:
+    with overview_tab:
+        render_distribution_section(payload)
+    with drift_tab:
+        render_drift_section(
+            payload.get("domain_shift", {}),
+            payload.get("model_quality_shift", {}),
+        )
         st.divider()
-        render_recent_events(events_response.payload.get("events", []))
-    else:
-        st.warning(events_response.payload.get("detail", "Événements indisponibles."))
+        render_feedback_summary(payload.get("feedback", {}))
+    with events_tab:
+        if events_response.status_code == 200:
+            render_recent_events(events_response.payload.get("events", []))
+        else:
+            st.warning(events_response.payload.get("detail", "Événements indisponibles."))
 
     last_event_at = payload.get("last_event_at")
     if last_event_at:
@@ -429,12 +527,124 @@ def render_monitoring_page(api_url: str) -> None:
         st.json(payload)
 
 
+def render_monitoring_overview(payload: dict[str, Any]) -> None:
+    """Render the main monitoring status cards."""
+
+    total_predictions = int(payload.get("total_predictions") or 0)
+    ok_rate = float(payload.get("ok_rate") or 0.0)
+    error_rate = float(payload.get("error_rate") or 0.0)
+    uncertain_rate = float(payload.get("uncertain_rate") or 0.0)
+    low_confidence_rate = float(payload.get("low_confidence_rate") or 0.0)
+    domain_shift = payload.get("domain_shift", {})
+    feedback_summary = payload.get("feedback", {})
+
+    service_tone = "good"
+    service_label = "Service stable"
+    if error_rate > 0.05:
+        service_tone = "critical"
+        service_label = "Erreurs à surveiller"
+    elif uncertain_rate > 0.25:
+        service_tone = "watch"
+        service_label = "Beaucoup d'incertitudes"
+
+    domain_status = "insufficient_data"
+    domain_tone = "neutral"
+    if isinstance(domain_shift, dict):
+        domain_status = str(domain_shift.get("status", "insufficient_data"))
+        domain_tone = risk_to_tone(str(domain_shift.get("risk_level", "none")))
+
+    high_confidence_disagreement_count = 0
+    high_confidence_disagreement_rate = 0.0
+    high_confidence_threshold = 0.9
+    if isinstance(feedback_summary, dict):
+        high_confidence_disagreement_count = int(
+            feedback_summary.get("high_confidence_disagreement_count") or 0
+        )
+        high_confidence_disagreement_rate = float(
+            feedback_summary.get("high_confidence_disagreement_rate") or 0.0
+        )
+        high_confidence_threshold = float(
+            feedback_summary.get("high_confidence_threshold") or 0.9
+        )
+
+    if total_predictions and total_predictions < 10:
+        st.info(
+            "Échantillon encore faible : les taux et la latence P95 sont indicatifs "
+            "tant que peu de prédictions ont été enregistrées."
+        )
+
+    first_row = st.columns(3, gap="medium")
+    with first_row[0]:
+        render_monitoring_card(
+            "Volume observé",
+            str(total_predictions),
+            "Nombre de prédictions enregistrées dans le JSONL de monitoring.",
+            tone="neutral",
+        )
+    with first_row[1]:
+        render_monitoring_card(
+            "Santé API",
+            service_label,
+            f"{format_optional_percent(ok_rate)} OK · "
+            f"{format_optional_percent(error_rate)} erreurs · "
+            f"{format_optional_percent(uncertain_rate)} incertitudes.",
+            tone=service_tone,
+        )
+    with first_row[2]:
+        render_monitoring_card(
+            "Latence P95",
+            format_ms(payload.get("p95_latency_ms")),
+            "95 % des requêtes sont plus rapides que cette valeur ; les cold starts peuvent la tirer vers le haut.",
+            tone="watch" if _numeric(payload.get("p95_latency_ms")) > 5000 else "good",
+        )
+
+    second_row = st.columns(3, gap="medium")
+    with second_row[0]:
+        render_monitoring_card(
+            "Scores faibles",
+            format_optional_percent(low_confidence_rate),
+            "Part de prédictions où au moins une confiance passe sous le seuil ; le modèle sait qu'il hésite.",
+            tone="watch" if low_confidence_rate > 0.25 else "good",
+        )
+    with second_row[1]:
+        render_monitoring_card(
+            "Domaine image",
+            format_domain_status(domain_status),
+            "Similarité des dernières images avec PlantVillage et PlantDoc.",
+            tone=domain_tone,
+        )
+    with second_row[2]:
+        render_monitoring_card(
+            "Forte confiance contestée",
+            f"{high_confidence_disagreement_count} cas",
+            f"Feedback incorrect avec confiance >= {format_optional_percent(high_confidence_threshold)} "
+            f"({format_optional_percent(high_confidence_disagreement_rate)} des retours).",
+            tone="watch" if high_confidence_disagreement_count else "good",
+        )
+
+
+def render_monitoring_card(label: str, value: str, help_text: str, *, tone: str) -> None:
+    """Render a compact explanatory monitoring card."""
+
+    safe_tone = tone if tone in {"good", "watch", "critical", "neutral"} else "neutral"
+    st.markdown(
+        f"""
+        <div class="monitoring-card {safe_tone}">
+            <div class="monitoring-label">{html.escape(label)}</div>
+            <div class="monitoring-value">{html.escape(value)}</div>
+            <div class="monitoring-help">{html.escape(help_text)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_alerts(alerts: Any) -> None:
     """Render active monitoring alerts."""
 
-    st.subheader("Alertes actives")
+    st.markdown("#### Alertes actives")
     if not alerts:
-        st.success("Aucune alerte active sur la fenêtre observée.")
+        st.success("Aucune alerte active : les seuils de service, confiance, drift et feedback restent sous contrôle.")
         return
     for alert in alerts:
         if not isinstance(alert, dict):
@@ -442,39 +652,53 @@ def render_alerts(alerts: Any) -> None:
         message = alert.get("message", "Alerte monitoring")
         value = alert.get("value")
         threshold = alert.get("threshold")
-        st.warning(f"{message} Valeur : {value} ; seuil : {threshold}.")
+        st.warning(f"{message} Valeur observée : {value} ; seuil configuré : {threshold}.")
 
 
 def render_distribution_section(payload: dict[str, Any]) -> None:
-    """Render predicted class distributions."""
+    """Render the production flow distribution."""
 
-    st.subheader("Distribution des prédictions")
-    left, right, third = st.columns(3, gap="medium")
+    st.markdown("#### Flux de prédictions")
+    st.caption(
+        "Objectif : vérifier si l'usage réel se concentre sur quelques espèces. "
+        "Un flux très déséquilibré peut expliquer des alertes ou orienter la collecte future."
+    )
+    left, right = st.columns([1.7, 1], gap="medium")
     with left:
-        render_bar_chart("Espèces prédites", payload.get("species_distribution", {}))
+        render_horizontal_bars(
+            "Top espèces observées",
+            payload.get("species_distribution", {}),
+            max_items=6,
+        )
     with right:
-        render_bar_chart("Maladies prédites", payload.get("disease_distribution", {}))
-    with third:
         healthy_ratio = payload.get("healthy_ratio")
-        st.metric("Ratio feuilles saines", format_optional_percent(healthy_ratio))
-        st.caption("Calculé uniquement sur les diagnostics maladie disponibles.")
-
-
-def render_confidence_section(payload: dict[str, Any]) -> None:
-    """Render confidence histograms."""
-
-    st.subheader("Fiabilité des scores")
-    left, right = st.columns(2, gap="medium")
-    with left:
-        render_bar_chart("Confiance espèce", payload.get("species_confidence_histogram", {}))
-    with right:
-        render_bar_chart("Confiance maladie", payload.get("disease_confidence_histogram", {}))
+        render_monitoring_card(
+            "Feuilles saines",
+            format_optional_percent(healthy_ratio),
+            "Part des diagnostics maladie classés Healthy. Calculé seulement quand une maladie est prédite.",
+            tone="neutral",
+        )
+        st.caption(
+            "Les distributions détaillées des maladies restent disponibles dans la réponse brute "
+            "pour audit, mais ne sont pas affichées ici pour garder la lecture centrée sur les signaux."
+        )
 
 
 def render_drift_section(domain_shift: Any, model_quality_shift: Any) -> None:
     """Render the domain-shift summary."""
 
-    st.subheader("Détection du drift")
+    st.markdown("#### Similarité au domaine d'entraînement")
+    st.caption(
+        "Objectif : savoir si les dernières images ressemblent au domaine attendu "
+        "PlantVillage ou plutôt à un domaine OOD connu comme PlantDoc. L'image n'est "
+        "pas stockée : seules des métriques dérivées sont comparées."
+    )
+    st.info(
+        "Méthode : l'API calcule la moyenne récente de quelques descripteurs "
+        "simples (luminosité, contraste, netteté, saturation, ratio vert/brun, "
+        "confiances), puis mesure leur distance normalisée à chaque référence. "
+        "Plus la distance est basse, plus le flux ressemble à la référence."
+    )
     if not isinstance(domain_shift, dict) or not domain_shift.get("reference_available"):
         st.info("Référence de drift indisponible. Le monitoring reste limité aux métriques service.")
         return
@@ -482,120 +706,296 @@ def render_drift_section(domain_shift: Any, model_quality_shift: Any) -> None:
     status = str(domain_shift.get("status", "insufficient_data"))
     risk_level = str(domain_shift.get("risk_level", "none"))
     closest_reference = domain_shift.get("closest_reference") or "non déterminée"
-    status_label = {
-        "in_domain": "In-domain",
-        "ood_like": "OOD connu",
-        "reference_shift": "Décalage",
-        "unknown_shift": "Inconnu",
-        "insufficient_data": "Attente",
-    }.get(status, status)
+    status_label = format_domain_status(status)
 
     cols = st.columns(4, gap="medium")
-    cols[0].metric("État domaine", status_label)
-    cols[1].metric("Risque", risk_level)
-    cols[2].metric("Référence proche", str(closest_reference))
-    cols[3].metric("Fenêtre", int(domain_shift.get("window_size") or 0))
-    st.caption(
-        "OOD connu signifie que le flux ressemble à la référence PlantDoc : "
-        "la fiabilité est surveillée, sans conclure automatiquement à une erreur."
-    )
+    with cols[0]:
+        render_monitoring_card(
+            "Conclusion",
+            status_label,
+            "Résumé de similarité du flux récent, pas une preuve de performance.",
+            tone=risk_to_tone(risk_level),
+        )
+    with cols[1]:
+        render_monitoring_card(
+            "Alerte domaine",
+            format_risk_level(risk_level),
+            "Aucun si le flux reste proche du domaine attendu ou d'une référence connue.",
+            tone=risk_to_tone(risk_level),
+        )
+    with cols[2]:
+        render_monitoring_card(
+            "Référence proche",
+            format_reference_label(str(closest_reference)),
+            "Référence dont les métriques dérivées ressemblent le plus au flux récent.",
+            tone="neutral",
+        )
+    with cols[3]:
+        render_monitoring_card(
+            "Fenêtre récente",
+            str(int(domain_shift.get("window_size") or 0)),
+            f"Minimum requis : {int(domain_shift.get('minimum_window_size') or 0)} événements.",
+            tone="neutral",
+        )
 
     distances = domain_shift.get("distances", {})
-    render_bar_chart("Distance aux références", distances)
+    render_horizontal_bars(
+        "Similarité aux références",
+        format_reference_mapping(distances),
+        max_items=3,
+        lower_is_better=True,
+    )
+    st.caption(
+        "Ce sont des distances normalisées, pas des pourcentages : 0 signifie très proche ; "
+        "au-dessus des seuils, le flux est considéré comme décalé."
+    )
 
     prediction_drift = domain_shift.get("prediction_drift", {})
     if isinstance(prediction_drift, dict):
         left, right = st.columns(2, gap="medium")
-        left.metric("Drift espèces", format_distance(prediction_drift.get("species_distance")))
-        right.metric("Drift maladies", format_distance(prediction_drift.get("disease_distance")))
+        with left:
+            render_monitoring_card(
+                "Écart espèces",
+                format_distance(prediction_drift.get("species_distance")),
+                "Différence entre les espèces prédites récemment et la référence la plus proche.",
+                tone="neutral",
+            )
+        with right:
+            render_monitoring_card(
+                "Écart maladies",
+                format_distance(prediction_drift.get("disease_distance")),
+                "Différence entre les maladies prédites récemment et la référence la plus proche.",
+                tone="neutral",
+            )
 
     signals = domain_shift.get("signals", [])
-    if signals:
-        st.write("Signaux principaux")
-        st.dataframe(signals, use_container_width=True, hide_index=True)
-    else:
-        st.caption("Aucun signal fort sur les métriques dérivées de l'image.")
+    render_drift_signals(signals)
 
     if isinstance(model_quality_shift, dict):
-        st.write("Signal feedback")
-        feedback_cols = st.columns(4, gap="medium")
-        feedback_cols[0].metric(
-            "État qualité",
-            str(model_quality_shift.get("status", "n/a")),
-        )
-        feedback_cols[1].metric(
-            "Risque qualité",
-            str(model_quality_shift.get("risk_level", "none")),
-        )
-        feedback_cols[2].metric(
-            "Désaccord",
-            format_optional_percent(model_quality_shift.get("disagreement_rate")),
-        )
-        feedback_cols[3].metric(
-            "Retours requis",
-            int(model_quality_shift.get("minimum_feedback") or 0),
-        )
+        st.markdown("#### Signal feedback")
         st.caption(
-            "Le feedback ne détecte pas le data drift à lui seul : il apporte une vérité "
-            "terrain utilisateur pour signaler une possible dérive de qualité."
+            "Le feedback ne détecte pas le data drift à lui seul. Il ajoute une indication "
+            "de qualité perçue par l'utilisateur, utile pour prioriser les futures validations."
         )
+        feedback_cols = st.columns(4, gap="medium")
+        with feedback_cols[0]:
+            render_monitoring_card(
+                "État qualité",
+                format_quality_status(str(model_quality_shift.get("status", "n/a"))),
+                "Synthèse du signal issu des retours utilisateur.",
+                tone=risk_to_tone(str(model_quality_shift.get("risk_level", "none"))),
+            )
+        with feedback_cols[1]:
+            render_monitoring_card(
+                "Risque qualité",
+                format_risk_level(str(model_quality_shift.get("risk_level", "none"))),
+                "Le risque monte si les désaccords deviennent fréquents.",
+                tone=risk_to_tone(str(model_quality_shift.get("risk_level", "none"))),
+            )
+        with feedback_cols[2]:
+            render_monitoring_card(
+                "Désaccord",
+                format_optional_percent(model_quality_shift.get("disagreement_rate")),
+                "Part des feedbacks marqués comme incorrects.",
+                tone="watch"
+                if float(model_quality_shift.get("disagreement_rate") or 0.0) > 0.3
+                else "good",
+            )
+        with feedback_cols[3]:
+            render_monitoring_card(
+                "Seuil feedback",
+                str(int(model_quality_shift.get("minimum_feedback") or 0)),
+                "Nombre minimal de retours avant d'interpréter le signal qualité.",
+                tone="neutral",
+            )
 
 
 def render_feedback_summary(feedback: Any) -> None:
     """Render aggregate user feedback."""
 
-    st.subheader("Retours utilisateur")
+    st.markdown("#### Retours utilisateur collectés")
+    st.caption(
+        "Ces retours sont stockés sans image et servent à identifier les classes contestées, "
+        "pas à réentraîner automatiquement le modèle."
+    )
     if not isinstance(feedback, dict):
         st.info("Aucun retour utilisateur disponible.")
         return
-    cols = st.columns(3, gap="medium")
-    cols[0].metric("Retours", int(feedback.get("total_feedback") or 0))
-    cols[1].metric("Désaccord", format_optional_percent(feedback.get("disagreement_rate")))
-    cols[2].metric("Dernier retour", feedback.get("last_feedback_at") or "Aucun")
-    render_bar_chart("Verdicts", feedback.get("verdict_distribution", {}))
+    high_confidence_disagreement_count = int(
+        feedback.get("high_confidence_disagreement_count") or 0
+    )
+    high_confidence_disagreement_rate = float(
+        feedback.get("high_confidence_disagreement_rate") or 0.0
+    )
+    high_confidence_threshold = float(feedback.get("high_confidence_threshold") or 0.9)
+
+    cols = st.columns(4, gap="medium")
+    with cols[0]:
+        render_monitoring_card(
+            "Retours",
+            str(int(feedback.get("total_feedback") or 0)),
+            "Nombre de feedbacks explicitement envoyés après une prédiction.",
+            tone="neutral",
+        )
+    with cols[1]:
+        render_monitoring_card(
+            "Désaccord",
+            format_optional_percent(feedback.get("disagreement_rate")),
+            "Part des retours où l'utilisateur signale une prédiction incorrecte.",
+            tone="watch" if float(feedback.get("disagreement_rate") or 0.0) > 0.3 else "good",
+        )
+    with cols[2]:
+        render_monitoring_card(
+            "Forte confiance contestée",
+            str(high_confidence_disagreement_count),
+            f"Feedback incorrect alors qu'une confiance concernée dépasse "
+            f"{format_optional_percent(high_confidence_threshold)}.",
+            tone="watch" if high_confidence_disagreement_count else "good",
+        )
+    with cols[3]:
+        render_monitoring_card(
+            "Dernier retour",
+            short_timestamp(feedback.get("last_feedback_at")),
+            f"Dernier feedback reçu. Taux forte confiance : "
+            f"{format_optional_percent(high_confidence_disagreement_rate)}.",
+            tone="neutral",
+        )
+    st.divider()
+    left, right = st.columns(2, gap="medium")
+    with left:
+        render_ranked_counts(
+            "Maladies contestées",
+            feedback.get("disputed_disease_distribution", {}),
+            "Classes maladie le plus souvent associées à un feedback utilisateur.",
+        )
+    with right:
+        render_ranked_counts(
+            "Corrections proposées",
+            feedback.get("corrected_disease_distribution", {}),
+            "Maladies indiquées par l'utilisateur quand il conteste le diagnostic.",
+        )
 
 
 def render_recent_events(events: Any) -> None:
     """Render recent prediction events and latency trend."""
 
-    st.subheader("Événements récents")
+    st.markdown("#### Derniers événements enregistrés")
+    st.caption(
+        "Cette section garde la trace technique : statut, classes prédites, confiances et latence. "
+        "Elle permet de relier les agrégats du dashboard à des appels API réels."
+    )
     if not isinstance(events, list) or not events:
         st.info("Aucun événement récent à afficher.")
         return
 
-    latency_points = [
-        {"timestamp": event.get("timestamp", ""), "latency_ms": event.get("latency_ms")}
-        for event in events
-        if isinstance(event, dict) and isinstance(event.get("latency_ms"), int | float)
-    ]
-    if latency_points:
-        st.line_chart(latency_points, x="timestamp", y="latency_ms")
-
     visible_events = [
         {
-            "timestamp": event.get("timestamp"),
+            "timestamp": short_timestamp(event.get("timestamp")),
             "status": event.get("status"),
             "species": event.get("species"),
             "disease": event.get("disease"),
-            "species_confidence": event.get("species_confidence"),
-            "disease_confidence": event.get("disease_confidence"),
-            "latency_ms": event.get("latency_ms"),
+            "species_confidence": format_optional_percent(event.get("species_confidence")),
+            "disease_confidence": format_optional_percent(event.get("disease_confidence")),
+            "latency_ms": format_ms(event.get("latency_ms")),
         }
         for event in events
         if isinstance(event, dict)
     ]
-    st.dataframe(visible_events, use_container_width=True, hide_index=True)
+    st.dataframe(visible_events, width="stretch", hide_index=True)
 
 
-def render_bar_chart(title: str, values: Any) -> None:
-    """Render a Streamlit bar chart from a mapping."""
+def render_horizontal_bars(
+    title: str,
+    values: Any,
+    *,
+    max_items: int = 6,
+    lower_is_better: bool = False,
+) -> None:
+    """Render compact horizontal bars from a mapping."""
+
+    if not isinstance(values, dict) or not values:
+        st.write(title)
+        st.caption("Aucune donnée.")
+        return
+    numeric_items = [
+        (str(label), float(value))
+        for label, value in values.items()
+        if isinstance(value, int | float)
+    ]
+    numeric_items.sort(key=lambda item: item[1], reverse=not lower_is_better)
+    selected_items = numeric_items[:max_items]
+    max_value = max((value for _, value in selected_items), default=0.0)
+
+    rows = []
+    for label, value in selected_items:
+        width = 0 if max_value <= 0 else int((value / max_value) * 100)
+        rows.append(
+            f"""
+            <div class="bar-row">
+                <div class="bar-label">{html.escape(label)}</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width:{width}%"></div>
+                </div>
+                <div class="bar-value">{format_chart_value(value, lower_is_better=lower_is_better)}</div>
+            </div>
+            """
+        )
+
+    hint = "Plus bas = plus proche." if lower_is_better else ""
+    st.html(
+        f"""
+        <div class="chart-panel">
+            <div class="chart-title">{html.escape(title)}</div>
+            {''.join(rows)}
+            <div class="chart-hint">{html.escape(hint)}</div>
+        </div>
+        """,
+    )
+
+
+def render_ranked_counts(title: str, values: Any, help_text: str) -> None:
+    """Render ranked count values without adding another chart."""
 
     st.write(title)
+    st.caption(help_text)
     if not isinstance(values, dict) or not values:
         st.caption("Aucune donnée.")
         return
-    rows = [{"label": str(label), "value": value} for label, value in values.items()]
-    st.bar_chart(rows, x="label", y="value")
+    rows = sorted(
+        values.items(),
+        key=lambda item: int(item[1]) if isinstance(item[1], int | float) else 0,
+        reverse=True,
+    )[:5]
+    for label, value in rows:
+        st.markdown(f"- **{html.escape(str(label))}** : {int(value)}")
+
+
+def render_drift_signals(signals: Any) -> None:
+    """Render only the most actionable drift signals."""
+
+    if not isinstance(signals, list) or not signals:
+        st.caption("Aucun signal fort sur les métriques dérivées de l'image.")
+        return
+
+    st.write("Métriques image les plus éloignées")
+    st.caption(
+        "Ces lignes expliquent pourquoi le flux peut s'éloigner de la référence, "
+        "sans afficher toutes les métriques techniques."
+    )
+    rows = []
+    for signal in signals[:3]:
+        if not isinstance(signal, dict):
+            continue
+        rows.append(
+            {
+                "métrique": signal.get("metric"),
+                "niveau": signal.get("level"),
+                "direction": signal.get("direction"),
+                "z_score": signal.get("z_score"),
+            }
+        )
+    if rows:
+        st.dataframe(rows, width="stretch", hide_index=True)
 
 
 def format_distance(value: Any) -> str:
@@ -604,6 +1004,103 @@ def format_distance(value: Any) -> str:
     if not isinstance(value, int | float):
         return "n/a"
     return f"{float(value):.2f}"
+
+
+def format_chart_value(value: float, *, lower_is_better: bool = False) -> str:
+    """Format compact chart values for counts, ratios and distances."""
+
+    if value.is_integer():
+        return str(int(value))
+    if 0 <= value <= 1 and not lower_is_better:
+        return f"{value:.0%}"
+    return f"{value:.2f}"
+
+
+def format_domain_status(status: str) -> str:
+    """Return a readable domain-shift status."""
+
+    return {
+        "in_domain": "Proche du domaine attendu",
+        "ood_like": "Proche OOD connu",
+        "reference_shift": "Décalage modéré",
+        "unknown_shift": "Décalage inconnu",
+        "insufficient_data": "Données insuffisantes",
+    }.get(status, status.replace("_", " "))
+
+
+def format_reference_label(reference: str) -> str:
+    """Return a readable monitoring reference label."""
+
+    return {
+        "plantvillage_in_domain": "PlantVillage attendu",
+        "plantdoc_ood": "PlantDoc OOD connu",
+    }.get(reference, reference.replace("_", " "))
+
+
+def format_reference_mapping(values: Any) -> dict[str, float]:
+    """Format reference keys while preserving their numeric distances."""
+
+    if not isinstance(values, dict):
+        return {}
+    return {
+        format_reference_label(str(label)): value
+        for label, value in values.items()
+        if isinstance(value, int | float)
+    }
+
+
+def format_quality_status(status: str) -> str:
+    """Return a readable model-quality status."""
+
+    return {
+        "insufficient_feedback": "Feedback insuffisant",
+        "feedback_stable": "Feedback stable",
+        "quality_drift_suspected": "Qualité à surveiller",
+        "feedback_confirms_domain_risk": "Risque confirmé",
+    }.get(status, status.replace("_", " "))
+
+
+def format_risk_level(risk_level: str) -> str:
+    """Return a readable risk label."""
+
+    return {
+        "none": "Aucun",
+        "watch": "Surveillance",
+        "warning": "Avertissement",
+        "critical": "Critique",
+    }.get(risk_level, risk_level.replace("_", " "))
+
+
+def risk_to_tone(risk_level: str) -> str:
+    """Map API risk levels to CSS card tones."""
+
+    if risk_level == "critical":
+        return "critical"
+    if risk_level in {"warning", "watch"}:
+        return "watch"
+    if risk_level == "none":
+        return "good"
+    return "neutral"
+
+
+def short_timestamp(value: Any) -> str:
+    """Shorten an ISO timestamp for compact dashboard tables."""
+
+    if not value:
+        return "Aucun"
+    text = str(value)
+    if "T" not in text:
+        return text
+    date_part, time_part = text.split("T", maxsplit=1)
+    return f"{date_part} {time_part[:8]}"
+
+
+def _numeric(value: Any) -> float:
+    """Return a numeric value with a stable fallback for monitoring thresholds."""
+
+    if isinstance(value, int | float):
+        return float(value)
+    return 0.0
 
 
 def render_last_result(api_url: str) -> None:
@@ -702,35 +1199,50 @@ def render_feedback_form(api_url: str, payload: dict[str, Any]) -> None:
         "Je ne sais pas": "unsure",
     }
 
-    with st.form("prediction_feedback_form", clear_on_submit=False):
-        verdict_label = st.radio(
-            "Cette prédiction vous semble-t-elle correcte ?",
-            options=list(verdict_labels),
-            horizontal=True,
+    verdict_label = st.radio(
+        "Cette prédiction vous semble-t-elle correcte ?",
+        options=list(verdict_labels),
+        horizontal=True,
+    )
+    corrected_species = None
+    corrected_disease = None
+    if verdict_labels[verdict_label] == "incorrect":
+        species_options = ["Non renseigné", *SPECIES_OPTIONS.values()]
+        predicted_species_label = display_species(species.get("species"))
+        species_index = (
+            species_options.index(predicted_species_label)
+            if predicted_species_label in species_options
+            else 0
         )
-        corrected_species = None
-        corrected_disease = None
-        if verdict_labels[verdict_label] == "incorrect":
-            selected_species = st.selectbox(
-                "Espèce correcte",
-                options=["Non renseigné", *SPECIES_OPTIONS.values()],
-            )
-            selected_disease = st.selectbox(
-                "Maladie correcte",
-                options=["Non renseignée", *DISEASE_LABELS.values()],
-            )
-            corrected_species = (
-                label_to_species(selected_species)
-                if selected_species != "Non renseigné"
-                else None
-            )
-            corrected_disease = (
-                label_to_disease(selected_disease)
-                if selected_disease != "Non renseignée"
-                else None
-            )
-        comment = st.text_area("Commentaire optionnel", max_chars=500)
-        submitted = st.form_submit_button("Envoyer le retour")
+        selected_species = st.selectbox(
+            "Espèce correcte",
+            options=species_options,
+            index=species_index,
+            help=(
+                "Si l'espèce prédite était correcte, gardez-la sélectionnée : "
+                "la liste des maladies sera filtrée pour cette espèce."
+            ),
+        )
+        corrected_species = (
+            label_to_species(selected_species)
+            if selected_species != "Non renseigné"
+            else None
+        )
+
+        disease_options = feedback_disease_options(corrected_species)
+        selected_disease = st.selectbox(
+            "Maladie correcte",
+            options=["Non renseignée", *disease_options],
+            disabled=corrected_species is None,
+            help="La liste est limitée aux maladies connues pour l'espèce correcte.",
+        )
+        corrected_disease = (
+            feedback_disease_label_to_key(selected_disease, corrected_species)
+            if corrected_species is not None and selected_disease != "Non renseignée"
+            else None
+        )
+    comment = st.text_area("Commentaire optionnel", max_chars=500)
+    submitted = st.button("Envoyer le retour", type="primary", width="content")
 
     if not submitted:
         return
@@ -740,6 +1252,8 @@ def render_feedback_form(api_url: str, payload: dict[str, Any]) -> None:
         "prediction_status": payload.get("status"),
         "predicted_species": species.get("species"),
         "predicted_disease": disease.get("disease"),
+        "predicted_species_confidence": species.get("confidence"),
+        "predicted_disease_confidence": disease.get("confidence"),
         "corrected_species": corrected_species,
         "corrected_disease": corrected_disease,
         "comment": comment.strip() or None,
@@ -922,6 +1436,56 @@ def label_to_disease(label: str) -> str:
 
     reverse_mapping = {display: key for key, display in DISEASE_LABELS.items()}
     return reverse_mapping[label]
+
+
+def feedback_disease_options(species: str | None) -> list[str]:
+    """Return disease feedback labels filtered by corrected species."""
+
+    if not species:
+        return []
+
+    disease_keys = {
+        disease_key
+        for species_key, disease_key in DISEASE_INFO
+        if species_key == species
+    }
+    disease_keys.add("Healthy")
+    return [
+        feedback_disease_label(disease_key, species)
+        for disease_key in sorted(disease_keys, key=lambda key: feedback_disease_label(key, species))
+    ]
+
+
+def feedback_disease_label_to_key(label: str, species: str | None) -> str:
+    """Return the disease key matching a species-aware feedback label."""
+
+    if not species:
+        return label_to_disease(label)
+    mapping = {
+        feedback_disease_label(disease_key, species): disease_key
+        for disease_key in {
+            disease_key
+            for species_key, disease_key in DISEASE_INFO
+            if species_key == species
+        }
+        | {"Healthy"}
+    }
+    return mapping[label]
+
+
+def feedback_disease_label(disease_key: str, species: str) -> str:
+    """Return a French disease label with the English class name in parentheses."""
+
+    if disease_key == "Healthy":
+        return "Feuille saine (Healthy)"
+
+    info = DISEASE_INFO.get((species, disease_key))
+    if info is not None:
+        return f"{info['title']} ({info['english']})"
+
+    french_label = DISEASE_LABELS.get(disease_key, disease_key.replace("_", " "))
+    english_label = disease_key.replace("_", " ")
+    return f"{french_label} ({english_label})"
 
 
 def display_species(value: Any) -> str:

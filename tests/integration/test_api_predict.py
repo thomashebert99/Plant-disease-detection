@@ -142,6 +142,8 @@ async def test_feedback_endpoint_is_visible_in_monitoring_summary() -> None:
                 "prediction_status": "ok",
                 "predicted_species": "tomato",
                 "predicted_disease": "Late_Blight",
+                "predicted_species_confidence": 0.96,
+                "predicted_disease_confidence": 0.94,
                 "corrected_species": "potato",
                 "corrected_disease": "Early_Blight",
                 "comment": "Feuille mal reconnue.",
@@ -154,4 +156,5 @@ async def test_feedback_endpoint_is_visible_in_monitoring_summary() -> None:
     feedback = monitoring_response.json()["feedback"]
     assert feedback["total_feedback"] == 1
     assert feedback["disagreement_rate"] == 1.0
+    assert feedback["high_confidence_disagreement_count"] == 1
     assert feedback["corrected_disease_distribution"] == {"Early_Blight": 1}

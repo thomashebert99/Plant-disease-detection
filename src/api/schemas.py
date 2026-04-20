@@ -94,6 +94,8 @@ class FeedbackRequest(BaseModel):
     prediction_status: str | None = None
     predicted_species: str | None = None
     predicted_disease: str | None = None
+    predicted_species_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    predicted_disease_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     corrected_species: str | None = None
     corrected_disease: str | None = None
     comment: str | None = Field(default=None, max_length=500)

@@ -155,6 +155,43 @@ def test_feedback_summary_aggregates_user_disagreements() -> None:
     assert summary["corrected_species_distribution"] == {"potato": 1}
 
 
+def test_feedback_summary_flags_high_confidence_disagreements(monkeypatch) -> None:
+    """Incorrect feedback on confident predictions should be visible as calibration risk."""
+
+    monkeypatch.setenv("MONITORING_HIGH_CONFIDENCE_THRESHOLD", "0.9")
+    log_feedback(
+        {
+            "event_type": "feedback",
+            "timestamp": "2026-04-18T10:03:00+00:00",
+            "verdict": "incorrect",
+            "predicted_species": "tomato",
+            "predicted_disease": "Late_Blight",
+            "predicted_species_confidence": 0.96,
+            "predicted_disease_confidence": 0.94,
+            "corrected_species": "tomato",
+            "corrected_disease": "Early_Blight",
+        }
+    )
+    log_feedback(
+        {
+            "event_type": "feedback",
+            "timestamp": "2026-04-18T10:04:00+00:00",
+            "verdict": "correct",
+            "predicted_species": "apple",
+            "predicted_species_confidence": 0.97,
+        }
+    )
+
+    feedback = summarize_feedback()
+    summary = summarize_predictions()
+
+    assert feedback["high_confidence_threshold"] == 0.9
+    assert feedback["high_confidence_disagreement_count"] == 1
+    assert feedback["high_confidence_disagreement_rate"] == 0.5
+    assert feedback["high_confidence_disagreement_share"] == 1.0
+    assert any(alert["metric"] == "high_confidence_disagreement" for alert in summary["alerts"])
+
+
 def test_user_feedback_adds_model_quality_shift_alert(monkeypatch) -> None:
     """Repeated user disagreements should become a quality-drift monitoring signal."""
 

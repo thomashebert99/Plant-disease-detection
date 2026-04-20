@@ -248,6 +248,7 @@ Ce choix conserve le monitoring léger du projet tout en supprimant la principal
 | `HF_TOKEN` | secret, non commité |
 | `CONFIDENCE_THRESHOLD` | `0.65` |
 | `MONITORING_STORAGE_DIR` | `/data/plant-disease-detection/monitoring` |
+| `MONITORING_HIGH_CONFIDENCE_THRESHOLD` | `0.90` |
 
 **Space Streamlit (production) :**
 
@@ -360,6 +361,13 @@ L'endpoint `GET /monitoring/summary` agrège les événements JSONL et retourne 
     "risk_level": "none",
     "disagreement_rate": 0.0
   },
+  "feedback": {
+    "total_feedback": 4,
+    "disagreement_rate": 0.25,
+    "high_confidence_threshold": 0.9,
+    "high_confidence_disagreement_count": 1,
+    "high_confidence_disagreement_rate": 0.25
+  },
   "last_event_at": "2026-04-18T10:00:00+00:00"
 }
 ```
@@ -368,26 +376,28 @@ L'endpoint `GET /monitoring/events?limit=100` retourne les derniers événements
 
 ### Détection du drift
 
-Le drift est détecté sans stocker les images. L'API compare les métriques récentes avec deux références :
+Le drift est estimé sans stocker les images. Il s'agit plus précisément d'une mesure de **similarité au domaine d'entraînement** : l'API compare la moyenne récente de métriques dérivées des images avec deux références.
 
 | Référence | Rôle |
 |---|---|
 | `plantvillage_in_domain` | Domaine contrôlé utilisé pour l'entraînement, la validation et le test in-distribution |
 | `plantdoc_ood` | Domaine OOD connu, plus proche d'images terrain et déjà identifié comme plus difficile |
 
-Le résultat n'est pas un simple booléen. Le dashboard distingue `in_domain`, `ood_like`, `reference_shift` et `unknown_shift`. Une image OOD connue n'est donc pas automatiquement considérée comme une erreur ; elle déclenche plutôt une surveillance renforcée, cohérente avec les résultats plus faibles observés sur PlantDoc.
+Pour chaque référence, la distance est calculée comme un écart normalisé entre les métriques observées en production et les statistiques de référence. Les métriques utilisées sont par exemple la luminosité, le contraste, la netteté, la saturation, les ratios de pixels verts/bruns et les confiances du modèle. Plus la distance est faible, plus le flux récent ressemble à la référence.
+
+Le résultat n'est pas un simple booléen. Le dashboard distingue `in_domain`, `ood_like`, `reference_shift` et `unknown_shift`. Une image OOD connue n'est donc pas automatiquement considérée comme une erreur ; elle indique surtout que le flux ressemble davantage à PlantDoc qu'au domaine PlantVillage attendu. Cette mesure ne prouve pas une baisse de performance : elle signale un changement de domaine à analyser avec le feedback utilisateur ou une annotation experte.
 
 ### Feedback utilisateur
 
-Après une prédiction, Streamlit permet à l'utilisateur d'indiquer si le résultat lui semble correct, incorrect ou incertain. En cas de désaccord, il peut indiquer l'espèce ou la maladie correcte. Le retour est envoyé à `POST /feedback` et stocké dans un fichier JSONL séparé, sans conservation de l'image.
+Après une prédiction, Streamlit permet à l'utilisateur d'indiquer si le résultat lui semble correct, incorrect ou incertain. En cas de désaccord, il peut indiquer l'espèce ou la maladie correcte. Le retour est envoyé à `POST /feedback` et stocké dans un fichier JSONL séparé, sans conservation de l'image. Le feedback conserve aussi les confiances espèce et maladie affichées au moment de la prédiction, afin de distinguer une simple hésitation du modèle d'une prédiction contestée malgré une forte confiance.
 
-Ce feedback ne remplace pas une annotation experte, mais il donne un signal d'amélioration itérative : classes souvent contestées, taux de désaccord, besoin de nouvelles données ou de réévaluation.
+Ce feedback ne remplace pas une annotation experte, mais il donne un signal d'amélioration itérative : classes souvent contestées, taux de désaccord, prédictions à forte confiance contestées, besoin de nouvelles données ou de réévaluation.
 
 Il est volontairement séparé du `domain_shift`. Les métriques image et les distributions détectent un changement de domaine ; le feedback utilisateur détecte une possible dérive de qualité ou de concept. Si les deux signaux apparaissent ensemble, le diagnostic de monitoring est plus fort.
 
 ### Alertes
 
-Les alertes sont calculées à partir de seuils configurables : taux d'erreur, taux d'espèce incertaine, confiance maladie moyenne, latence P95, drift inconnu et taux de désaccord utilisateur. Elles sont affichées dans la page Monitoring de Streamlit.
+Les alertes sont calculées à partir de seuils configurables : taux d'erreur, taux d'espèce incertaine, confiance maladie moyenne, latence P95, drift inconnu, taux de désaccord utilisateur et prédictions à forte confiance contestées. Elles sont affichées dans la page Monitoring de Streamlit.
 
 ### Distinction MLflow / JSONL
 

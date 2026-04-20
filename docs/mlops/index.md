@@ -145,9 +145,9 @@ Un second endpoint expose les derniers événements pour alimenter les graphes t
 GET /monitoring/events?limit=100
 ```
 
-### Détection du drift sans stockage des images
+### Similarité au domaine d'entraînement
 
-Le drift est détecté par comparaison entre une fenêtre récente de production et deux références :
+Le drift est estimé par comparaison entre une fenêtre récente de production et deux références, sans stocker les images. Cette mesure indique si le flux ressemble toujours au domaine d'entraînement ou s'il se rapproche d'un domaine OOD connu :
 
 - `plantvillage_in_domain` : domaine d'entraînement/validation contrôlé ;
 - `plantdoc_ood` : domaine OOD connu, plus proche des conditions terrain.
@@ -159,11 +159,11 @@ Cette double référence évite de traiter automatiquement toute image OOD comme
 - `reference_shift` : flux éloigné des références mais encore explicable ;
 - `unknown_shift` : décalage fort et non couvert par les références connues.
 
-Les signaux utilisés sont des proxys : métriques image, confiances et distributions de prédictions. Ils ne remplacent pas une mesure de performance avec vérité terrain, mais ils permettent de déclencher une surveillance, une campagne d'annotation ou une analyse complémentaire.
+Les signaux utilisés sont des proxys : métriques image, confiances et distributions de prédictions. Les distances affichées sont des écarts normalisés aux références, pas des pourcentages ni des preuves d'erreur. Elles ne remplacent pas une mesure de performance avec vérité terrain, mais elles permettent de déclencher une surveillance, une campagne d'annotation ou une analyse complémentaire.
 
 ### Feedback utilisateur
 
-L'interface Streamlit propose un retour après prédiction : correcte, incorrecte ou incertaine. L'endpoint `POST /feedback` stocke ce retour dans un JSONL séparé, sans image. Ce feedback permet de suivre un taux de désaccord et d'identifier les classes à prioriser pour une amélioration future.
+L'interface Streamlit propose un retour après prédiction : correcte, incorrecte ou incertaine. L'endpoint `POST /feedback` stocke ce retour dans un JSONL séparé, sans image. Il conserve aussi les confiances affichées au moment de la prédiction pour repérer les cas les plus importants : une prédiction contestée alors que le modèle était très confiant. Ce feedback permet de suivre un taux de désaccord, les désaccords à forte confiance et les classes à prioriser pour une amélioration future.
 
 Le feedback ne détecte pas le data drift au sens strict : il détecte plutôt une possible dérive de qualité ou de concept, car il apporte une vérité terrain utilisateur. Le dashboard l'affiche donc comme un signal complémentaire `model_quality_shift`. S'il y a à la fois un flux OOD/inconnu et beaucoup de désaccords, le risque devient beaucoup plus crédible.
 

@@ -274,6 +274,7 @@ Le fichier `.env.example` documente l'ensemble des variables nécessaires.
 | `MONITORING_STORAGE_DIR` | Dossier contenant les JSONL de monitoring et de feedback |
 | `MONITORING_LOG_PATH` | Chemin optionnel du fichier JSONL de monitoring si l'on veut surcharger le dossier commun |
 | `FEEDBACK_LOG_PATH` | Chemin optionnel du fichier JSONL des retours utilisateur |
+| `MONITORING_HIGH_CONFIDENCE_THRESHOLD` | Seuil des prédictions contestées malgré forte confiance |
 | `HF_TOKEN` | Token Hugging Face (secret, jamais commité) |
 | `HF_REPO_ID` | Dépôt Hugging Face des artefacts modèles |
 | `API_URL` | URL de l'API appelée par Streamlit |
