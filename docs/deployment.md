@@ -4,11 +4,11 @@ Cette page décrit le lancement local avec Docker Compose et le déploiement pub
 
 ## Ressources En Ligne
 
-| Ressource | Rôle | URL |
-|---|---|---|
-| Model repo | Stockage de `ensemble_config.json` et des checkpoints `.keras` | `https://huggingface.co/DredFury/plant-disease-detection-models` |
-| Space API | Hébergement FastAPI en Docker | `https://dredfury-plant-disease-detection-api.hf.space` |
-| Space Streamlit | Interface utilisateur | `https://dredfury-plant-disease-detection-app.hf.space` |
+| Ressource | Rôle | URL publique | Page Hugging Face |
+|---|---|---|---|
+| Model repo | Stockage de `ensemble_config.json` et des checkpoints `.keras` | `https://huggingface.co/DredFury/plant-disease-detection-models` | `https://huggingface.co/DredFury/plant-disease-detection-models` |
+| Space API | Hébergement FastAPI en Docker | `https://dredfury-plant-disease-detection-api.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-api` |
+| Space Streamlit | Interface utilisateur | `https://dredfury-plant-disease-detection-app.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-app` |
 
 Le choix Hugging Face est volontairement simple : un repo pour les artefacts ML, un Space pour l'API, un Space pour l'interface.
 

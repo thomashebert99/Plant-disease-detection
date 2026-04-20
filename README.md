@@ -4,12 +4,12 @@ Application de diagnostic foliaire par image. Le projet entraîne plusieurs mod�
 
 ## Démo en ligne
 
-| Service | URL |
-|---|---|
-| Interface Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` |
-| API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` |
-| Documentation API | `https://dredfury-plant-disease-detection-api.hf.space/docs` |
-| Modèles Hugging Face | `https://huggingface.co/DredFury/plant-disease-detection-models` |
+| Service | URL publique | Page Hugging Face |
+|---|---|---|
+| Interface Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-app` |
+| API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-api` |
+| Documentation API | `https://dredfury-plant-disease-detection-api.hf.space/docs` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-api` |
+| Modèles Hugging Face | `https://huggingface.co/DredFury/plant-disease-detection-models` | `https://huggingface.co/DredFury/plant-disease-detection-models` |
 
 Endpoints rapides :
 

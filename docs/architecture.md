@@ -41,11 +41,11 @@ Hugging Face Space Streamlit
   appelle l'API publique
 ```
 
-| Ressource | URL |
-|---|---|
-| Application Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` |
-| API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` |
-| Model repo | `https://huggingface.co/DredFury/plant-disease-detection-models` |
+| Ressource | URL publique | Page Hugging Face |
+|---|---|---|
+| Application Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-app` |
+| API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-api` |
+| Model repo | `https://huggingface.co/DredFury/plant-disease-detection-models` | `https://huggingface.co/DredFury/plant-disease-detection-models` |
 
 ## Pipeline ML
 

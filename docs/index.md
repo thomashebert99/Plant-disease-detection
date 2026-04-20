@@ -11,11 +11,11 @@ Le projet combine :
 
 ## Démo en ligne
 
-| Service | URL |
-|---|---|
-| Application Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` |
-| API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` |
-| Model repo Hugging Face | `https://huggingface.co/DredFury/plant-disease-detection-models` |
+| Service | URL publique | Page Hugging Face |
+|---|---|---|
+| Application Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-app` |
+| API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-api` |
+| Model repo Hugging Face | `https://huggingface.co/DredFury/plant-disease-detection-models` | `https://huggingface.co/DredFury/plant-disease-detection-models` |
 
 Endpoints de vérification :
 
@@ -35,5 +35,5 @@ https://dredfury-plant-disease-detection-api.hf.space/monitoring/summary
 | Déploiement | Docker Compose, Hugging Face Hub et Hugging Face Spaces |
 | API | Endpoints, schémas de réponse et exemples d'appel |
 | MLOps | Suivi d'expériences, tests et automatisation |
-| Rapport de projet - P1 | Cas pratique : veille, benchmark et paramétrage |
-| Rapport de projet - P2 | Mise en situation : réalisation, résultats et déploiement |
+| Cas pratique | Veille, benchmark et paramétrage |
+| Mise en situation | Réalisation, résultats, déploiement et monitoring |
