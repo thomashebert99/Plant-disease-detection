@@ -431,25 +431,19 @@ Les tests ne rejouent pas l'évaluation complète des modèles finaux, car celle
 
 La CI est déclenchée sur chaque push vers `main` ou `develop`, sur chaque pull request, et en lancement manuel (`workflow_dispatch`).
 
-```
-push GitHub
-    │
-    ▼
-┌─────────────────────────────────┐
-│  Job: test                      │
-│  1. Setup Python 3.11           │
-│  2. pip install (CPU, dev)      │
-│  3. py_compile entrypoints      │
-│  4. pytest                      │
-│  5. coverage ≥ 70 %             │
-│  6. mkdocs build --strict       │
-└────────────────┬────────────────┘
-                 │ succès + (main ou manual)
-                 ▼
-┌─────────────────────────────────┐
-│  Job: docker-api                │
-│  docker build -t api:ci .       │
-└─────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[Push, pull request ou lancement manuel] --> B[Job test]
+    B --> B1[Setup Python 3.11]
+    B1 --> B2[Installation des dépendances CPU et dev]
+    B2 --> B3[Compilation des entrypoints Python]
+    B3 --> B4[Tests pytest]
+    B4 --> B5[Coverage >= 70 %]
+    B5 --> B6[Build documentation MkDocs]
+    B6 --> C{Succès sur main ou lancement manuel ?}
+    C -->|Oui| D[Job docker-api]
+    C -->|Non| E[Fin du workflow]
+    D --> F[Build Docker de l'image API]
 ```
 
 ### Détail des étapes CI

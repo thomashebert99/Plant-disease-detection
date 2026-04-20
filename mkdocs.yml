@@ -37,6 +37,10 @@ nav:
 markdown_extensions:
   - pymdownx.highlight:         # coloration syntaxique des blocs de code
       anchor_linenums: true
-  - pymdownx.superfences        # blocs de code imbriqués
+  - pymdownx.superfences:       # blocs de code imbriqués + diagrammes Mermaid
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - admonition                  # blocs note/warning/tip
   - tables
