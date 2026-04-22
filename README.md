@@ -6,6 +6,7 @@ Application de diagnostic foliaire par image. Le projet entraîne plusieurs mod�
 
 | Service | URL publique | Page Hugging Face |
 |---|---|---|
+| Site du projet | `https://thomashebert99.github.io/Plant-disease-detection/` | - |
 | Interface Streamlit | `https://dredfury-plant-disease-detection-app.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-app` |
 | API FastAPI | `https://dredfury-plant-disease-detection-api.hf.space` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-api` |
 | Documentation API | `https://dredfury-plant-disease-detection-api.hf.space/docs` | `https://huggingface.co/spaces/DredFury/Plant-disease-detection-api` |
@@ -153,7 +154,9 @@ La procédure détaillée se trouve dans la documentation :
 make docs
 ```
 
-Puis ouvrir la page `Déploiement`.
+Puis ouvrir la page `Déploiement`, localement ou directement sur le site publié :
+
+`https://thomashebert99.github.io/Plant-disease-detection/`
 
 ## Vérifications
 
